@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background-color: #020617; /* Deepest base */
+}
+
+body {
+  /* This creates that subtle green glow in the background */
+  background-image: 
+    radial-gradient(circle at 50% -20%, #064e3b 0%, transparent 50%),
+    radial-gradient(circle at 0% 100%, #022c22 0%, transparent 30%);
+  color: white;
+}
+
+/* Custom Glow Class for that "Green Mist" effect */
+.green-glow {
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+.green-border-glow {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
