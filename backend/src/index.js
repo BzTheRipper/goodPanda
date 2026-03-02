@@ -7,37 +7,65 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import http from "http";
 import { Server } from "socket.io";
+import User from "./models/user.model.js";
 
 // To use dotenv
 dotenv.config();
+const backendPort = process.env.BACKEND_PORT_ENV;
+const frontedPort = process.env.FRONTEND_PORT_ENV;
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://192.168.31.96:5000", "http://localhost:5000"], 
+    origin: [`http://192.168.31.96:${frontedPort}`, `http://localhost${frontedPort}`, `http://192.168.31.247:${frontedPort}` ], 
     credentials: true
   }
 });
 
+// Used to store online users
+const userConnectedClientMap = {}; //{userId: connectedClientId}
+
 // From here actually we are connecting with socket connection
-io.on("connection", (connectedClient) => {
-    console.log("A new user has been connected", connectedClient.id);
+io.on("connection", async (connectedClient) => {
+    
+
+    const userId = connectedClient.handshake.query.userId;
+    if(userId){
+      userConnectedClientMap[userId] = connectedClient.id
+    }
+    const userName = await (User.findById(userId));
+    console.log(`A new user, ${userName.fullname} has been connected, socket ID: ${connectedClient.id}`);
+
+    // io.emit is used to send the events to all the connected clients or basically broadcasting it
+    io.emit("getOnlineUsers", Object.keys(userConnectedClientMap));
+    
+
+    connectedClient.on("user-message", async (message) => {
+      const theUser = await User.findById(connectedClient.handshake.query.userId);
+      console.log(`A message from ${theUser.fullname}: `,message);
+      const userInfo = {
+        name: theUser.fullname,
+        theMessage: message
+      };
+      io.emit("message", userInfo);
+    })
 
     // For Disconnection
     connectedClient.on("disconnect", () => {
-        console.log("A user has been disconnected", connectedClient.id)
+      console.log("A user has been disconnected", connectedClient.id)
+      delete userConnectedClientMap[userId];
+      io.emit("getOnlineUsers", Object.keys(userConnectedClientMap));
     })
 })
 
 app.use(cookieParser());
 app.use(express.json()); 
 
-const backendPort = process.env.BACKEND_PORT_ENV;
-const frontedPort = process.env.FRONTEND_PORT_ENV;
+
 
 app.use(cors({
-  origin: [`http://192.168.31.96:${frontedPort}`, `http://localhost:${frontedPort}`],
+  origin: [`http://192.168.31.96:${frontedPort}`, `http://localhost:${frontedPort}`, `http://192.168.31.247:${frontedPort}`],
   credentials: true
 }));
 

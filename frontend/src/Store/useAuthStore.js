@@ -20,6 +20,7 @@ export const useAuthState = create((set, get) => ({
     isSigningUp: false,
     isLoggingIn: false,
     socket: null,
+    onlineUsers: [],
 
     checkAuth: async () => {
         try {
@@ -59,6 +60,7 @@ export const useAuthState = create((set, get) => ({
         try {
             const res = await axiosInstance.post("/auth/login", usersLoginFromData);
             set({ authUser: res.data });
+            console.log(res.data)
             toast.success(res.data.message);
             get().connectSocket();
 
@@ -73,6 +75,7 @@ export const useAuthState = create((set, get) => ({
     logout: async () => {
         try {
             const res = axiosInstance.post("/auth/logout");
+            console.log(res);
             toast.success("Logged Out Successfully!");
             set({ authUser: null });
             get().disconnectSocket();
@@ -84,16 +87,21 @@ export const useAuthState = create((set, get) => ({
     connectSocket: () => {
         const { authUser, socket } = get();
 
-
         if (!authUser || socket) return;
 
         // Actual socket connection from frontend is happening here
-        const newSocket = io(BASE_URL);
+        const newSocket = io(BASE_URL, {
+            query: {
+                userId: authUser._id,
+            }
+        });
         newSocket.connect();
 
         set({ socket: newSocket });
 
-
+        newSocket.on("getOnlineUsers", (userIds) => {
+            set({onlineUsers: userIds});
+        })
 
     },
 

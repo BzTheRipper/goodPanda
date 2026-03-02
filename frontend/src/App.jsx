@@ -12,20 +12,22 @@ import { Features } from './Pages/FeaturesPage';
 import { ProductPage } from './Pages/ProductPage';
 import { CompanyPage } from './Pages/CompanyPage';
 import { UpdateUninstallLifePage } from './Pages/UpdateUninstallLifePage';
-
+import {MessagetestPage} from './Pages/MessagetestPage';
 
 
 function App() {
 
   const [count, setCount] = useState(0);
 
-  const { authUser, isCheckingAuth, checkAuth } = useAuthState();
+  const { authUser, isCheckingAuth, checkAuth, onlineUsers } = useAuthState();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth])
 
   //console.log("Current Auth User:", authUser);
+
+  console.log("Online Users: ", onlineUsers);
 
   if (isCheckingAuth && !authUser) {
     return (
@@ -106,6 +108,7 @@ function App() {
         <Route path="/product" element={<ProductPage />} />
         <Route path="/company" element={<CompanyPage />} />
         <Route path="/updateuinstall" element={<UpdateUninstallLifePage />} />
+        <Route path="/messagetest" element={<MessagetestPage/>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>
