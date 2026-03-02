@@ -4,7 +4,7 @@ import toast from "react-hot-toast"
 import { io } from "socket.io-client";
 
 
-const BASE_URL = `http://192.168.31.96:${import.meta.env.VITE_backendPort}`;
+const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 
 // The create function takes an object literal. 
 // signup is a key in that object, and its value is a function. 
