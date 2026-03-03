@@ -1,7 +1,6 @@
 import express from "express";
 import authRoutes from "./routes/auth.route.js";
 import dotenv from "dotenv";
-import { connect } from "mongoose";
 import { connectDB } from "./lib/db.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -10,78 +9,89 @@ import { Server } from "socket.io";
 import User from "./models/user.model.js";
 import path from "path";
 
-// To use dotenv
 dotenv.config();
-const backendPort = process.env.BACKEND_PORT_ENV;
-const frontedPort = process.env.FRONTEND_PORT_ENV;
-const __dirname = path.resolve();
 
 const app = express();
 const server = http.createServer(app);
+
+// 1. Dynamic CORS Logic for both Express and Socket.io
+const frontendPort = process.env.FRONTEND_PORT_ENV || 5000;
+const backendPort = process.env.PORT || process.env.BACKEND_PORT_ENV || 5001;
+
+const allowedOrigins = [
+  `http://localhost:${frontendPort}`,
+  `http://192.168.31.96:${frontendPort}`,
+  "https://goodpanda.onrender.com" // Replace with your actual Render URL
+];
+
 const io = new Server(server, {
   cors: {
-    origin: [`http://localhost:5000`],
+    origin: allowedOrigins,
     credentials: true
   }
 });
 
-// Used to store online users
-const userConnectedClientMap = {}; //{userId: connectedClientId}
+const userConnectedClientMap = {};
 
-// From here actually we are connecting with socket connection
 io.on("connection", async (connectedClient) => {
-
-
   const userId = connectedClient.handshake.query.userId;
+  
   if (userId) {
-    userConnectedClientMap[userId] = connectedClient.id
+    userConnectedClientMap[userId] = connectedClient.id;
+    try {
+      const user = await User.findById(userId);
+      if (user) {
+        // FIX: Safe logging to prevent crash
+        console.log(`✅ User ${user.fullname} connected (ID: ${connectedClient.id})`);
+        connectedClient.user = user; 
+      }
+    } catch (err) {
+      console.log("Socket user fetch error");
+    }
   }
-  const userName = await (User.findById(userId));
-  console.log(`A new user, ${userName.fullname} has been connected, socket ID: ${connectedClient.id}`);
 
-  // io.emit is used to send the events to all the connected clients or basically broadcasting it
   io.emit("getOnlineUsers", Object.keys(userConnectedClientMap));
 
-
   connectedClient.on("user-message", async (message) => {
-    const theUser = await User.findById(connectedClient.handshake.query.userId);
-    console.log(`A message from ${theUser.fullname}: `, message);
-    const userInfo = {
-      name: theUser.fullname,
-      theMessage: message
-    };
-    io.emit("message", userInfo);
-  })
+    // Using the user we attached to the client for safety and speed
+    const name = connectedClient.user?.fullname || "Unknown";
+    console.log(`📩 Message from ${name}: `, message);
+    io.emit("message", { name, theMessage: message });
+  });
 
-  // For Disconnection
   connectedClient.on("disconnect", () => {
-    console.log("A user has been disconnected", connectedClient.id)
-    delete userConnectedClientMap[userId];
+    console.log("❌ A user disconnected", connectedClient.id);
+    if (userId) delete userConnectedClientMap[userId];
     io.emit("getOnlineUsers", Object.keys(userConnectedClientMap));
-  })
-})
+  });
+});
 
 app.use(cookieParser());
 app.use(express.json());
 
-
-
 app.use(cors({
-  origin: [`http://localhost:5000`],
+  origin: allowedOrigins,
   credentials: true
 }));
 
+// API Routes
 app.use('/api/auth', authRoutes);
 
+// 2. Production Static Serving
+const __dirname = path.resolve();
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  // Path for Render (root/backend/src -> root/frontend/dist)
+  const frontendPath = path.resolve(__dirname, "../../frontend/dist");
+  
+  app.use(express.static(frontendPath));
 
-  app.get("(.*)", (req, res) => {
-    res.sendFile(path.join(__dirname, "../../frontend/dist/index.html"));
-});
+  app.get("*path", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
 }
 
+// 3. Listen on process.env.PORT (Required by Render)
 server.listen(backendPort, () => {
-  console.log(`Server started at http://192.168.31.96:${backendPort}`)
+  console.log(`🚀 Server running on port ${backendPort}`);
   connectDB();
-})
+});
