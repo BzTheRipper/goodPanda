@@ -78,13 +78,14 @@ app.use(cors({
 app.use('/api/auth', authRoutes);
 
 // 2. Production Static Serving
-const __dirname = path.resolve();
 if (process.env.NODE_ENV === "production") {
-  // Path for Render (root/backend/src -> root/frontend/dist)
-  const frontendPath = path.resolve(__dirname, "../../frontend/dist");
+  // process.cwd() points to the project root (where backend/ and frontend/ folders live)
+  const frontendPath = path.join(process.cwd(), "frontend", "dist");
   
+  // Serve static files
   app.use(express.static(frontendPath));
 
+  // Catch-all route
   app.get("*path", (req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
   });
