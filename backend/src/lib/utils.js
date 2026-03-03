@@ -11,7 +11,7 @@ export const generateToken = (userId, res) => {
         maxAge: expiredTime,
         httpOnly: true, // prevent XSS attacks cross-site scripting attacks
         sameSite: "strict", // CSRF attacks cross-site request 
-        secure: process.env.MODE != "development"
+        secure: process.env.NODE_ENV != "development"
     })
 
     return token;

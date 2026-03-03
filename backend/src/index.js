@@ -73,7 +73,7 @@ app.use(cors({
 
 app.use('/api/auth', authRoutes);
 
-if (process.env.MODE === "production") {
+if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
   app.get("*", (req, res) => {
@@ -84,8 +84,4 @@ if (process.env.MODE === "production") {
 server.listen(backendPort, () => {
   console.log(`Server started at http://192.168.31.96:${backendPort}`)
   connectDB();
-})
-
-app.get('/', (req, res) => {
-  res.send("Hi");
 })
