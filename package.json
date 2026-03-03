@@ -4,7 +4,7 @@
   "description": "��#\u0000 \u0000g\u0000o\u0000o\u0000d\u0000P\u0000a\u0000n\u0000d\u0000a\u0000\r\u0000 \u0000",
   "main": "index.js",
   "scripts": {
-    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "build": "npm install --prefix backend && npm install --prefix frontend --legacy-peer-deps && npm run build --prefix frontend",
     "start": "npm run start --prefix backend"
   },
   "repository": {
