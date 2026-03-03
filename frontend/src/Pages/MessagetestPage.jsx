@@ -45,7 +45,7 @@ export const MessagetestPage = () => {
                 className="bg-[#2dd4bf] hover:bg-[#5eead4] text-black font-bold py-4 px-8 rounded-lg active:scale-95 transition-all"
                 onClick={() => sendDirection("up")}
             >
-                Up (W)
+                Up (W deploy)
             </button>
 
             <div className="flex gap-4">
