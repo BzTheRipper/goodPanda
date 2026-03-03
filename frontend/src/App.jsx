@@ -7,7 +7,7 @@ import { SignUpPage } from './Pages/SignUpPage';
 import { useAuthState } from './Store/useAuthStore';
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User } from "lucide-react";
 import { useEffect } from 'react';
-import { MarketplacePage } from './Pages/MarketPlacePage';
+import { MarketplacePage } from './Pages/MarketplacePage';
 import { Features } from './Pages/FeaturesPage';
 import { ProductPage } from './Pages/ProductPage';
 import { CompanyPage } from './Pages/CompanyPage';
