@@ -77,13 +77,22 @@ export const MessagetestPage = () => {
 
     return (
         <div className="h-[100dvh] w-full bg-black flex flex-col items-center touch-none overflow-hidden select-none relative">
-            {/* LAYER 0: FPV IFRAME */}
+            
+            {/* LAYER 0: FPV IFRAME FIX */}
             <div className="absolute inset-0 z-0 bg-[#050a05]">
                 {primaryLink ? (
-                    <iframe src={primaryLink} className="w-full h-full border-none opacity-90" title="FPV" key={primaryLink} />
+                    <iframe 
+                        src={primaryLink} 
+                        className="w-full h-full border-none opacity-90" 
+                        title="FPV" 
+                        key={primaryLink}
+                        allow="autoplay; fullscreen"
+                        sandbox="allow-forms allow-scripts allow-same-origin allow-popups"
+                    />
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-emerald-500/40 text-[10px] uppercase tracking-widest animate-pulse">Waiting for Link...</div>
                 )}
+                <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_200px_rgba(0,0,0,0.9)]" />
             </div>
 
             {/* LAYER 10: UI */}
@@ -91,14 +100,15 @@ export const MessagetestPage = () => {
                 <header className="w-full py-1 lg:py-2 flex justify-center items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto">
                     <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[9px] lg:text-sm">Panda Console</h1>
                     {primaryLink && !isFPVActive && (
-                        <button onClick={() => { window.open(primaryLink, '_blank'); setIsFPVActive(true); }} className="absolute left-4 px-2 py-0.5 bg-emerald-500 text-black rounded-full text-[8px] font-bold animate-bounce">ACTIVATE FPV</button>
+                        <button onClick={() => { window.open(primaryLink, '_blank'); setIsFPVActive(true); }} className="absolute left-4 px-2 py-0.5 bg-emerald-500 text-black rounded-full text-[8px] font-bold animate-bounce shadow-lg">ACTIVATE FPV</button>
                     )}
-                    <div className="absolute right-4 size-2.5 rounded-full bg-red-600 shadow-red-500" style={{ backgroundColor: gotTheTelMessage?.theTelMessage?.is_armable ? '#10b981' : '#dc2626' }} />
+                    <div className="absolute right-4 size-2.5 rounded-full shadow-lg" style={{ backgroundColor: gotTheTelMessage?.theTelMessage?.is_armable ? '#10b981' : '#dc2626' }} />
                 </header>
 
+                {/* SPEED SIDEBAR */}
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 z-50 pointer-events-auto">
-                    <span className="text-[8px] text-[#2dd4bf] font-mono">{speed}%</span>
-                    <div className="relative w-6 h-32 lg:w-10 bg-black/60 border border-white/10 rounded-full flex flex-col-reverse p-0.5">
+                    <span className="text-[8px] text-[#2dd4bf] font-mono font-bold">{speed}%</span>
+                    <div className="relative w-6 h-32 lg:w-10 bg-black/60 border border-white/10 rounded-full flex flex-col-reverse p-0.5 overflow-hidden">
                         <input type="range" min="20" max="100" step="10" value={speed} onChange={(e) => setSpeed(parseInt(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full appearance-none" style={{ WebkitAppearance: 'slider-vertical' }} />
                         <div className="w-full bg-emerald-500 rounded-full transition-all" style={{ height: `${speed}%` }} />
                     </div>
@@ -115,15 +125,16 @@ export const MessagetestPage = () => {
                     </div>
 
                     <div className="flex-1 flex flex-col items-center gap-2 mb-2 pointer-events-auto max-w-[120px] lg:max-w-xs">
-                        <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-1 rounded-lg w-full'>
-                            <p className="text-center text-[8px] lg:text-[10px] text-white font-mono uppercase">{gotTheTelMessage?.theTelMessage?.status_msg || "OFFLINE"}</p>
-                            <div className="grid grid-cols-3 text-center text-[#2dd4bf] font-mono text-[7px] lg:text-[13px] border-t border-white/5 mt-1">
+                        <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-1 rounded-lg w-full shadow-2xl'>
+                            <p className="text-center text-[8px] lg:text-[10px] text-white font-mono uppercase font-black">{gotTheTelMessage?.theTelMessage?.status_msg || "OFFLINE"}</p>
+                            <div className="grid grid-cols-3 text-center text-[#2dd4bf] font-mono text-[7px] lg:text-[13px] border-t border-white/5 mt-1 pt-1">
                                 <div><p className="text-gray-500 text-[5px]">X</p>{gotTheTelMessage?.theTelMessage?.x?.toFixed(1) || "0.0"}</div>
                                 <div><p className="text-gray-500 text-[5px]">Y</p>{gotTheTelMessage?.theTelMessage?.y?.toFixed(1) || "0.0"}</div>
                                 <div><p className="text-gray-500 text-[5px]">θ</p>{gotTheTelMessage?.theTelMessage?.theta?.toFixed(1) || "0.0"}</div>
                             </div>
                         </div>
-                        <button onClick={() => socket?.emit('user-message', { commands: ["force_disarm"], speed })} className="w-full py-1 bg-red-600/20 border border-red-500/40 rounded-lg text-red-500 text-[8px] lg:text-[10px] font-black uppercase">FORCE KILL</button>
+                        <button onClick={() => socket?.emit('user-message', { commands: ["force_disarm"], speed })} className="w-full py-1 bg-red-600/20 border border-red-500/40 rounded-lg text-red-500 text-[8px] lg:text-[10px] font-black uppercase active:scale-95 transition-all shadow-xl">FORCE KILL</button>
+                        
                         <div ref={sliderRef}
                             onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setIsDraggingSlider(true); hasTriggeredAction.current = false; }}
                             onPointerMove={(e) => {
@@ -138,10 +149,10 @@ export const MessagetestPage = () => {
                                 }
                             }}
                             onPointerUp={() => { setIsDraggingSlider(false); setYPos(0); }}
-                            className="relative w-10 h-28 lg:w-16 bg-black/60 rounded-2xl border border-white/10 flex items-center justify-center backdrop-blur-sm"
+                            className="relative w-10 h-28 lg:w-16 h-36 lg:h-56 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm"
                         >
-                            <div className="absolute top-1 text-[5px] text-emerald-500 opacity-40">ARM</div>
-                            <div className="absolute bottom-1 text-[5px] text-orange-500 opacity-40">LAND</div>
+                            <div className="absolute top-1 text-[5px] text-emerald-500 opacity-40 font-bold">ARM</div>
+                            <div className="absolute bottom-1 text-[5px] text-orange-500 opacity-40 font-bold">LAND</div>
                             <div className="absolute w-8 h-8 rounded-full shadow-2xl transition-all" style={{ transform: `translateY(${yPos}px)`, background: gotTheTelMessage?.theTelMessage?.is_armable ? "#10b981" : "#06b6d4" }} />
                         </div>
                     </div>
@@ -156,6 +167,7 @@ export const MessagetestPage = () => {
                     </div>
                 </main>
             </div>
+            <style dangerouslySetInnerHTML={{ __html: `.green-glow { text-shadow: 0 0 10px rgba(45, 212, 191, 0.6); } * { -webkit-tap-highlight-color: transparent !important; touch-action: none !important; }` }} />
         </div>
     );
 };
