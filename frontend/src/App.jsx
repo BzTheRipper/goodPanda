@@ -14,7 +14,7 @@ import { CompanyPage } from './Pages/CompanyPage';
 import { UpdateUninstallLifePage } from './Pages/UpdateUninstallLifePage';
 import {MessagetestPage} from './Pages/MessagetestPage';
 import { CameraStreamTestPage } from './Pages/CameraStreamTestPage';
-
+import { GPSViewer } from './Pages/GPSViewer';
 
 function App() {
 
@@ -111,6 +111,7 @@ function App() {
         <Route path="/updateuinstall" element={<UpdateUninstallLifePage />} />
         <Route path="/messagetest" element={<MessagetestPage/>} />
         <Route path="/cam-test" element={<CameraStreamTestPage />} />
+        <Route path="/gps" element={<GPSViewer />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>
