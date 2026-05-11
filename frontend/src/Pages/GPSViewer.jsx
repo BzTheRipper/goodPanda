@@ -1,11 +1,37 @@
-import React from 'react';
-import { useAuthState } from '../Store/useAuthStore';
+import React, { useState, useEffect } from 'react';
+import { useAuthState } from '../Store/useAuthStore'; // We only need this for the socket instance
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Satellite, MapPin, Activity, Gauge, Navigation } from 'lucide-react';
 
 export const GPSViewer = () => {
-    const { gotTheTelMessage } = useAuthState();
-    const gps = gotTheTelMessage?.theTelMessage?.gps_raw || {};
+    // 1. Get the socket from the store
+    const { socket } = useAuthState();
+    
+    // 2. Local state for the telemetry data
+    const [localTelData, setLocalTelData] = useState(null);
+
+    // 3. Listen for telemetry directly in this component
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleTelemetry = (data) => {
+            // console.log("Direct Telemetry Received:", data);
+            setLocalTelData(data);
+        };
+
+        // Attach listener
+        socket.on("telemetryMessage", handleTelemetry);
+
+        // Clean up when leaving the page
+        return () => {
+            socket.off("telemetryMessage", handleTelemetry);
+        };
+    }, [socket]);
+
+    // 4. Extract data from local state
+    const gps = localTelData?.theTelMessage?.gps_raw || {};
+    const statusMsg = localTelData?.theTelMessage?.status_msg || "OFFLINE";
+    const isLocked = gps.fix_type >= 3;
 
     const DataCard = ({ icon: Icon, label, value, unit, color }) => (
         <div className="bg-black/60 border border-emerald-500/10 p-4 rounded-2xl flex flex-col gap-1 shadow-lg backdrop-blur-md">
@@ -18,8 +44,6 @@ export const GPSViewer = () => {
             </div>
         </div>
     );
-
-    const isLocked = gps.fix_type >= 3;
 
     return (
         <div className="min-h-screen bg-[#020617] text-white p-4 font-sans selection:bg-emerald-500/30">
@@ -60,7 +84,7 @@ export const GPSViewer = () => {
                 {/* STATUS MESSAGE BOX */}
                 <div className="bg-emerald-950/20 border border-emerald-500/20 p-3 rounded-xl text-center">
                     <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Board System Status</p>
-                    <p className="text-xs font-mono font-bold text-emerald-400">{gotTheTelMessage?.theTelMessage?.status_msg || "OFFLINE"}</p>
+                    <p className="text-xs font-mono font-bold text-emerald-400">{statusMsg}</p>
                 </div>
             </div>
         </div>
