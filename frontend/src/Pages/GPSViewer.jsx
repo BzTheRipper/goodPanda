@@ -8,7 +8,7 @@ export const GPSViewer = () => {
     const gps = gotTheTelMessage?.theTelMessage?.gps_raw || {};
 
     const DataCard = ({ icon: Icon, label, value, unit, color }) => (
-        <div className="bg-black/60 border border-emerald-500/10 p-4 rounded-2xl flex flex-col gap-1 shadow-lg">
+        <div className="bg-black/60 border border-emerald-500/10 p-4 rounded-2xl flex flex-col gap-1 shadow-lg backdrop-blur-md">
             <div className="flex items-center gap-2 text-gray-500">
                 <Icon size={14} />
                 <span className="text-[10px] uppercase font-bold tracking-widest">{label}</span>
@@ -28,12 +28,12 @@ export const GPSViewer = () => {
                 <div className="flex items-center justify-between bg-black/40 p-3 rounded-2xl border border-white/5">
                     <div className="flex items-center gap-3">
                         <Link to="/messagetest" className="p-2 bg-emerald-500/10 rounded-full text-emerald-500 hover:bg-emerald-500/20 transition-all"><ArrowLeft size={20}/></Link>
-                        <h1 className="text-sm font-black tracking-widest text-emerald-400">PANDA GPS MONITOR</h1>
+                        <h1 className="text-sm font-black tracking-widest text-emerald-400">PANDA MONITOR</h1>
                     </div>
-                    <div className={`size-3 rounded-full ${isLocked ? 'bg-emerald-500 animate-pulse' : 'bg-red-600 animate-pulse'}`} />
+                    <div className={`size-3 rounded-full ${isLocked ? 'bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]' : 'bg-red-600 animate-pulse shadow-[0_0_10px_#dc2626]'}`} />
                 </div>
 
-                {/* SATELLITE STATUS CARD */}
+                {/* MAIN SATELLITE CARD */}
                 <div className={`relative overflow-hidden p-8 rounded-[2.5rem] border-2 flex flex-col items-center justify-center transition-all duration-500 ${isLocked ? 'bg-emerald-500/5 border-emerald-500 shadow-[0_0_50px_rgba(16,185,129,0.1)]' : 'bg-red-500/5 border-red-500/40'}`}>
                     <Satellite size={48} className={`mb-2 ${isLocked ? 'text-emerald-400' : 'text-red-500'}`} />
                     <span className="text-6xl font-black tracking-tighter">{gps.sats || 0}</span>
@@ -43,7 +43,7 @@ export const GPSViewer = () => {
                         <div className={`px-6 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase ${isLocked ? 'bg-emerald-500 text-black' : 'bg-red-600 text-white'}`}>
                             {gps.fix_type >= 3 ? "3D FIX SECURED" : "SEARCHING FOR SKY..."}
                         </div>
-                        <span className="text-[10px] font-mono text-gray-500">Fix Type: {gps.fix_type || 0}</span>
+                        <span className="text-[10px] font-mono text-gray-500 uppercase">Fix Type: {gps.fix_type || 0}</span>
                     </div>
                 </div>
 
@@ -57,10 +57,11 @@ export const GPSViewer = () => {
                     <DataCard icon={Activity} label="Relative Alt" value={gps.alt} unit="m" />
                 </div>
 
-                {/* FOOTER HINT */}
-                <p className="text-center text-[9px] text-gray-600 uppercase tracking-widest animate-pulse">
-                    Keep drone still until 3D fix is secured
-                </p>
+                {/* STATUS MESSAGE BOX */}
+                <div className="bg-emerald-950/20 border border-emerald-500/20 p-3 rounded-xl text-center">
+                    <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Board System Status</p>
+                    <p className="text-xs font-mono font-bold text-emerald-400">{gotTheTelMessage?.theTelMessage?.status_msg || "OFFLINE"}</p>
+                </div>
             </div>
         </div>
     );
