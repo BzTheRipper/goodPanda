@@ -86,21 +86,24 @@ export const useAuthState = create((set, get) => ({
 
     connectSocket: () => {
         const { authUser, socket } = get();
-
+        if (!authUser || (socket && socket.connected)) return;
         if (!authUser || socket) return;
 
         // Actual socket connection from frontend is happening here
         const newSocket = io(BASE_URL, {
             query: {
                 userId: authUser._id,
-            }
+            },
+            transports: ['websocket'], // <--- ADD THIS: Forces mobile to use stable websockets
+            reconnection: true,        // <--- ADD THIS: Ensures phone reconnects if screen turns off
+            reconnectionAttempts: 5
         });
         newSocket.connect();
 
         set({ socket: newSocket });
 
         newSocket.on("getOnlineUsers", (userIds) => {
-            set({onlineUsers: userIds});
+            set({ onlineUsers: userIds });
         })
 
     },
