@@ -18,5 +18,9 @@
   "bugs": {
     "url": "https://github.com/BzTheRipper/goodPanda/issues"
   },
-  "homepage": "https://github.com/BzTheRipper/goodPanda#readme"
+  "homepage": "https://github.com/BzTheRipper/goodPanda#readme",
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0"
+  }
 }
