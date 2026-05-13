@@ -16,7 +16,6 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const RecenterMap = ({ coords }) => {
     const map = useMap();
     useEffect(() => {
-        // If coordinates are valid and not the default 0, move the map view
         if (coords && coords[0] !== 0 && !isNaN(coords[0])) {
             map.setView(coords, map.getZoom(), { animate: true });
         }
@@ -46,23 +45,23 @@ export const GPSViewer = () => {
     useEffect(() => {
         if (!socket) return;
         const handleTelemetry = (data) => {
-            // console.log("Data Arrived:", data.theTelMessage.gps_raw); // Debug log
             setLocalTelData(data);
         };
         socket.on("telemetryMessage", handleTelemetry);
         return () => { socket.off("telemetryMessage", handleTelemetry); };
     }, [socket]);
 
+    // --- DATA EXTRACTION ---
     const tel = localTelData?.theTelMessage;
     const gps = tel?.gps_raw || {};
     const isLocked = gps.fix_type >= 3;
-
-    // --- FIX 1: COORDINATE PARSING & DEFAULTS ---
-    // Changed defaults to Dhaka. Use 'Number' to ensure they are treated as digits.
+    
+    // FIX: Define statusMsg which was missing in the previous version
+    const statusMsg = tel?.status_msg || "OFFLINE"; 
+    
+    // Coordinates
     const lat = gps.lat ? Number(gps.lat) : 23.8103;
     const lon = gps.lon ? Number(gps.lon) : 90.4125;
-    
-    // Position array for Leaflet
     const position = useMemo(() => [lat, lon], [lat, lon]);
 
     const mapTiles = isDarkMode 
@@ -126,6 +125,7 @@ export const GPSViewer = () => {
                         <DataCard icon={Activity} label="Relative Alt" value={gps.alt} unit="m" />
                     </div>
 
+                    {/* STATUS MESSAGE BOX */}
                     <div className="bg-emerald-950/20 border border-emerald-500/20 p-3 rounded-xl text-center shadow-inner">
                         <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Hardware Status</p>
                         <p className={`text-xs font-mono font-bold ${socket?.connected ? 'text-emerald-400' : 'text-red-500 animate-pulse'}`}>
@@ -147,7 +147,7 @@ export const GPSViewer = () => {
                 <div className="absolute top-3 left-3 right-3 flex justify-between z-[1001]">
                     <button 
                         onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}
-                        className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-emerald-400"
+                        className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-emerald-400 hover:text-white transition-all shadow-lg active:scale-90"
                     >
                         {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
                     </button>
@@ -177,13 +177,8 @@ export const GPSViewer = () => {
                 >
                     <TileLayer url={mapTiles} />
                     
-                    {/* FIX 2: ADDED DYNAMIC KEY TO MARKER */}
-                    {/* Providing a 'key' that includes the coordinates forces 
-                        the Marker to re-render at the new location every time */}
-                    <Marker 
-                        position={position} 
-                        key={`${lat}-${lon}`} 
-                    />
+                    {/* Unique Key ensures the Marker re-renders at new position instantly */}
+                    <Marker position={position} key={`${lat}-${lon}`} />
                     
                     <RecenterMap coords={position} />
                     <MapResizer isExpanded={isMapExpanded} />
