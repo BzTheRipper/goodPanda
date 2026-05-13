@@ -60,8 +60,8 @@ export const GPSViewer = () => {
     const statusMsg = tel?.status_msg || "OFFLINE"; 
     
     // Coordinates
-    const lat = gps.lat ? Number(gps.lat) : 23.8103;
-    const lon = gps.lon ? Number(gps.lon) : 90.4125;
+    const lat = gps.lat ? Number(gps.lat) : 31.783743854237702;
+    const lon = gps.lon ? Number(gps.lon) : 35.221016797127675;
     const position = useMemo(() => [lat, lon], [lat, lon]);
 
     const mapTiles = isDarkMode 
