@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Fix for default Leaflet icon missing in React builds
+// Fix for default Leaflet icon
 import icon from 'leaflet/dist/images/marker-icon.png';
 import shadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: shadow, iconSize: [25, 41], iconAnchor: [12, 41] });
@@ -16,8 +16,9 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const RecenterMap = ({ coords }) => {
     const map = useMap();
     useEffect(() => {
+        // If coordinates are valid and not the default 0, move the map view
         if (coords && coords[0] !== 0 && !isNaN(coords[0])) {
-            map.flyTo(coords, map.getZoom(), { animate: true, duration: 0.5 });
+            map.setView(coords, map.getZoom(), { animate: true });
         }
     }, [coords, map]);
     return null;
@@ -44,20 +45,26 @@ export const GPSViewer = () => {
 
     useEffect(() => {
         if (!socket) return;
-        const handleTelemetry = (data) => setLocalTelData(data);
+        const handleTelemetry = (data) => {
+            // console.log("Data Arrived:", data.theTelMessage.gps_raw); // Debug log
+            setLocalTelData(data);
+        };
         socket.on("telemetryMessage", handleTelemetry);
         return () => { socket.off("telemetryMessage", handleTelemetry); };
     }, [socket]);
 
     const tel = localTelData?.theTelMessage;
     const gps = tel?.gps_raw || {};
-    const statusMsg = tel?.status_msg || "OFFLINE";
     const isLocked = gps.fix_type >= 3;
 
-    // Map logic
-    const lat = parseFloat(gps.lat) || 31.783743854237702;
-    const lon = parseFloat(gps.lon) || 35.221016797127675;
+    // --- FIX 1: COORDINATE PARSING & DEFAULTS ---
+    // Changed defaults to Dhaka. Use 'Number' to ensure they are treated as digits.
+    const lat = gps.lat ? Number(gps.lat) : 23.8103;
+    const lon = gps.lon ? Number(gps.lon) : 90.4125;
+    
+    // Position array for Leaflet
     const position = useMemo(() => [lat, lon], [lat, lon]);
+
     const mapTiles = isDarkMode 
         ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
@@ -77,7 +84,7 @@ export const GPSViewer = () => {
     return (
         <div className="min-h-screen bg-[#020617] text-white font-sans flex overflow-hidden relative">
             
-            {/* --- LEFT SIDE: YOUR EXACT UI --- */}
+            {/* LEFT SIDE: Telemetry UI */}
             <div className={`transition-all duration-500 ease-in-out p-4 overflow-y-auto h-screen ${isMapExpanded ? 'w-full lg:w-1/2' : 'w-full'}`}>
                 <div className="max-w-md mx-auto space-y-4">
                     
@@ -105,21 +112,20 @@ export const GPSViewer = () => {
                             <div className={`px-6 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase ${isLocked ? 'bg-emerald-500 text-black' : 'bg-red-600 text-white'}`}>
                                 {gps.fix_type >= 3 ? "3D FIX SECURED" : "SEARCHING FOR SKY..."}
                             </div>
-                            <span className="text-[10px] font-mono text-gray-500">Raw Fix Type: {gps.fix_type || 0}</span>
+                            <span className="text-[10px] font-mono text-gray-500 uppercase">Fix Type: {gps.fix_type || 0}</span>
                         </div>
                     </div>
 
                     {/* TELEMETRY GRID */}
                     <div className="grid grid-cols-2 gap-3">
-                        <DataCard icon={MapPin} label="Latitude" value={gps.lat?.toFixed(6)} color="text-emerald-400" />
-                        <DataCard icon={MapPin} label="Longitude" value={gps.lon?.toFixed(6)} color="text-emerald-400" />
+                        <DataCard icon={MapPin} label="Latitude" value={lat.toFixed(6)} color="text-emerald-400" />
+                        <DataCard icon={MapPin} label="Longitude" value={lon.toFixed(6)} color="text-emerald-400" />
                         <DataCard icon={Activity} label="Horizontal Acc" value={gps.eph} unit="m" />
                         <DataCard icon={Navigation} label="Vertical Acc" value={gps.epv} unit="m" />
                         <DataCard icon={Gauge} label="Ground Speed" value={gps.vel} unit="m/s" />
                         <DataCard icon={Activity} label="Relative Alt" value={gps.alt} unit="m" />
                     </div>
 
-                    {/* STATUS MESSAGE BOX */}
                     <div className="bg-emerald-950/20 border border-emerald-500/20 p-3 rounded-xl text-center shadow-inner">
                         <p className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Hardware Status</p>
                         <p className={`text-xs font-mono font-bold ${socket?.connected ? 'text-emerald-400' : 'text-red-500 animate-pulse'}`}>
@@ -138,7 +144,6 @@ export const GPSViewer = () => {
                         : 'absolute top-4 right-4 w-24 h-24 lg:w-32 lg:h-32 rounded-2xl border-2 border-emerald-500/30 shadow-2xl cursor-pointer hover:border-emerald-400'
                     }`}
             >
-                {/* BUTTONS: Toggle Theme & Close */}
                 <div className="absolute top-3 left-3 right-3 flex justify-between z-[1001]">
                     <button 
                         onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}
@@ -171,13 +176,20 @@ export const GPSViewer = () => {
                     attributionControl={false}
                 >
                     <TileLayer url={mapTiles} />
-                    <Marker position={position} />
+                    
+                    {/* FIX 2: ADDED DYNAMIC KEY TO MARKER */}
+                    {/* Providing a 'key' that includes the coordinates forces 
+                        the Marker to re-render at the new location every time */}
+                    <Marker 
+                        position={position} 
+                        key={`${lat}-${lon}`} 
+                    />
+                    
                     <RecenterMap coords={position} />
                     <MapResizer isExpanded={isMapExpanded} />
                 </MapContainer>
             </div>
 
-            {/* HUD VIGNETTE */}
             <div className="fixed inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.5)] z-[-1]" />
         </div>
     );
