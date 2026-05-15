@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { useAuthState } from '../Store/useAuthStore';
 import {
-    Power, Circle, ShieldAlert, ExternalLink, X, Maximize2, Rocket, Signal, Sun, Moon, Satellite, ChevronRight
+    Power, Circle, ShieldAlert, ExternalLink, X, Maximize2, Rocket, Signal, Sun, Moon, Satellite, ArrowRight, ArrowDownToLine
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -66,9 +66,9 @@ const Joystick = memo(({ onMove }) => {
 
 export const MessagetestPage = () => {
     const { socket } = useAuthState();
-
+    
     // --- STATES ---
-    const [isStarted, setIsStarted] = useState(false); // Controls the Swipe Screen
+    const [isStarted, setIsStarted] = useState(false); 
     const [gotTheMessage, setGotTheMessage] = useState(null);
     const [gotTheTelMessage, setGotTheTelMessage] = useState(null);
     const [isMapExpanded, setIsExpanded] = useState(false);
@@ -78,14 +78,10 @@ export const MessagetestPage = () => {
     const [visualCmds, setVisualCommands] = useState([]);
     const [primaryLink, setPrimaryLink] = useState(null);
     const [isFPVActive, setIsFPVActive] = useState(false);
-
     const [isMobile] = useState(/Mobi|Android|iPhone/i.test(navigator.userAgent));
-    const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
 
     // --- REFS ---
     const sliderRef = useRef(null);
-    const startSliderRef = useRef(null);
-    const [startX, setStartX] = useState(0);
     const hasTriggeredAction = useRef(false);
     const activeKeys = useRef(new Set());
     const leftJoyDirs = useRef(new Set());
@@ -99,24 +95,30 @@ export const MessagetestPage = () => {
     const gpsData = tel?.gps_raw || {};
     const satCount = gpsData.sats || 0;
 
+    // YOUR REQUESTED DEFAULT COORDS
     const lat = gpsData.lat ? Number(gpsData.lat) : 31.787396049566723;
     const lon = gpsData.lon ? Number(gpsData.lon) : 35.224925554289065;
+    const position = useMemo(() => [lat, lon], [lat, lon]);
 
-    const position = useMemo(() => [gpsData.lat || 31.787396049566723, gpsData.lon || 35.224925554289065], [gpsData.lat, gpsData.lon]);
-    const mapTiles = isDarkMode
+    const getSatColor = () => {
+        if (satCount === 0) return "text-red-500";
+        if (satCount <= 3) return "text-purple-500 animate-pulse";
+        return "text-emerald-500";
+    };
+
+    const mapTiles = isDarkMode 
         ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
-    // --- SOCKETS ---
+    // --- LOGIC ---
     useEffect(() => {
         if (!socket) return;
-        socket.on("message", (msg) => setGotTheMessage(msg));
+        socket.on("message", setGotTheMessage);
         socket.on("telemetryMessage", (data) => {
             setGotTheTelMessage(data);
             setPing(Date.now() - lastEmitTime.current);
-            const incomingUrl = data.theTelMessage?.cam_url;
-            if (incomingUrl && incomingUrl !== primaryLink) {
-                setPrimaryLink(incomingUrl);
+            if (data.theTelMessage?.cam_url && data.theTelMessage.cam_url !== primaryLink) {
+                setPrimaryLink(data.theTelMessage.cam_url);
                 setIsFPVActive(false);
             }
         });
@@ -128,81 +130,43 @@ export const MessagetestPage = () => {
         let interval = setInterval(() => {
             lastEmitTime.current = Date.now();
             const combined = new Set([...Array.from(activeKeys.current), ...Array.from(leftJoyDirs.current), ...Array.from(rightJoyDirs.current)]);
-            const cmdArray = Array.from(combined);
-            setVisualCommands(cmdArray);
-            socket.emit("user-message", { commands: cmdArray, altitude });
+            socket.emit("user-message", { commands: Array.from(combined), altitude });
+            setVisualCommands(Array.from(combined));
         }, 100);
         return () => clearInterval(interval);
     }, [socket, altitude]);
 
-    // --- KEYBOARD ---
-    useEffect(() => {
-        const keyMap = { 'w': 'forward', 's': 'backward', 'a': 'left', 'd': 'right', 'arrowup': 'up', 'arrowdown': 'down', 'arrowleft': 'rotate_left', 'arrowright': 'rotate_right', 'k': 'arm', 'l': 'land' };
-        const down = (e) => { if (keyMap[e.key.toLowerCase()]) { e.preventDefault(); activeKeys.current.add(keyMap[e.key.toLowerCase()]); } };
-        const up = (e) => { if (keyMap[e.key.toLowerCase()]) activeKeys.current.delete(keyMap[e.key.toLowerCase()]); };
-        window.addEventListener("keydown", down); window.addEventListener("keyup", up);
-        return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
-    }, []);
-
-    // --- MOBILE START LOGIC ---
-    const handleStartSwipe = async (e) => {
+    const handleStartConsole = async () => {
         try {
             const element = document.documentElement;
             if (element.requestFullscreen) await element.requestFullscreen();
             if (screen.orientation?.lock) await screen.orientation.lock('landscape');
             setIsStarted(true);
-        } catch (err) {
-            setIsStarted(true); // Fallback if fullscreen fails
-        }
+        } catch (err) { setIsStarted(true); }
     };
 
     const handleForceDisarm = () => socket?.emit('user-message', { commands: ["force_disarm"], altitude });
     const handleTakeoff5m = () => socket?.emit('user-message', { commands: ["fly"], altitude: 5 });
-    const activateFPV = () => { window.open(primaryLink, '_blank'); setIsFPVActive(true); };
 
     return (
         <div className="h-[100dvh] w-full bg-black flex flex-col items-center touch-none overflow-hidden select-none relative" style={{ touchAction: 'none' }}>
 
-            {/* --- MOBILE SWIPE OVERLAY --- */}
-            {isMobile && !isStarted && (
-                <div className="fixed inset-0 z-[200] bg-[#050a05] flex flex-col items-center justify-center p-8 transition-all duration-700">
+            {/* --- MOBILE ENTRY OVERLAY (Button triggers Swipe Exit) --- */}
+            {isMobile && (
+                <div className={`fixed inset-0 z-[200] bg-[#050a05] flex flex-col items-center justify-center p-8 transition-transform duration-1000 ease-in-out ${isStarted ? '-translate-y-full' : 'translate-y-0'}`}>
                     <div className="mb-12 text-center">
-                        <h2 className="text-emerald-500 font-black text-3xl tracking-[0.2em] green-glow uppercase">Panda Console</h2>
-                        <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest">Autonomous Flight System</p>
+                        <Rocket size={48} className="text-emerald-500 mx-auto mb-4 animate-bounce" />
+                        <h2 className="text-emerald-500 font-black text-3xl tracking-[0.2em] uppercase green-glow">Panda Console</h2>
+                        <p className="text-gray-500 text-[10px] mt-2 uppercase tracking-widest">Autonomous Delivery Interface</p>
                     </div>
 
-                    {/* The Swipe Button */}
-                    <div
-                        ref={startSliderRef}
-                        className="relative w-72 h-16 bg-white/5 rounded-full border border-emerald-500/30 flex items-center p-1 overflow-hidden group shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                    <button 
+                        onClick={handleStartConsole}
+                        className="group relative px-12 py-4 bg-emerald-600/20 border-2 border-emerald-500 rounded-full text-emerald-400 font-black tracking-widest overflow-hidden transition-all hover:bg-emerald-500 hover:text-black active:scale-95"
                     >
-                        <div
-                            className="absolute inset-0 flex items-center justify-center pointer-events-none text-emerald-500/40 text-[10px] font-black uppercase tracking-[0.3em]"
-                        >
-                            Swipe to Start
-                        </div>
-
-                        <div
-                            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setStartX(0); }}
-                            onPointerMove={(e) => {
-                                if (e.buttons !== 1) return;
-                                let move = Math.max(0, Math.min(230, e.nativeEvent.offsetX));
-                                setStartX(move);
-                                if (move > 200) handleStartSwipe();
-                            }}
-                            onPointerUp={() => setStartX(0)}
-                            style={{ transform: `translateX(${startX}px)` }}
-                            className="z-10 size-14 bg-emerald-500 rounded-full flex items-center justify-center text-black shadow-[0_0_15px_#10b981] transition-transform duration-75 cursor-grab active:cursor-grabbing"
-                        >
-                            <ChevronRight size={32} strokeWidth={3} className="animate-pulse" />
-                        </div>
-                    </div>
-
-                    <div className="mt-12 flex items-center gap-2 opacity-30">
-                        <div className="size-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <div className="size-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <div className="size-1.5 bg-emerald-500 rounded-full animate-bounce" />
-                    </div>
+                        <span className="relative z-10 flex items-center gap-2">LAUNCH SYSTEM <ArrowRight size={20}/></span>
+                        <div className="absolute inset-0 bg-emerald-500 -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+                    </button>
                 </div>
             )}
 
@@ -225,32 +189,29 @@ export const MessagetestPage = () => {
                 <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_200px_rgba(0,0,0,0.9)]" />
             </div>
 
-            {/* TELEMETRY HUD (FPS STYLE) */}
+            {/* TOP LEFT: TELEMETRY (LARGER) */}
             <div className="absolute top-14 lg:top-16 left-4 z-30 flex flex-col gap-1 text-[11px] lg:text-[14px] font-mono text-emerald-400 pointer-events-none bg-black/40 p-4 rounded-xl border border-white/10 backdrop-blur-md shadow-2xl">
                 <div className="flex items-center gap-2 mb-1 border-b border-emerald-500/20 pb-2 text-blue-400">
                     <Signal size={16} />
                     <span className="font-bold uppercase tracking-widest text-xs">Link: {ping}ms</span>
                 </div>
-                <p><span className="opacity-40">LAT:</span> {gpsData.lat?.toFixed(6) || "---"}</p>
-                <p><span className="opacity-40">LON:</span> {gpsData.lon?.toFixed(6) || "---"}</p>
-                <p><span className="opacity-40">SATS:</span> {gpsData.sats || 0}</p>
-                <p><span className="opacity-40 text-blue-400">ALT:</span> <span className="text-blue-400 font-bold">{gpsData.alt?.toFixed(1) || "0.0"}M</span></p>
-                <p><span className="opacity-40">SPD:</span> {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
+                <p>LAT: {gpsData.lat?.toFixed(6) || "---"}</p>
+                <p>LON: {gpsData.lon?.toFixed(6) || "---"}</p>
+                <p className="text-blue-400 font-bold">ALT: {gpsData.alt?.toFixed(1) || "0.0"}M</p>
+                <p>SPD: {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
             </div>
 
             {/* UI HUD OVERLAY */}
-            <div className={`absolute inset-0 z-10 flex flex-col pointer-events-none transition-opacity duration-1000 ${isMobile && !isStarted ? 'opacity-0' : 'opacity-100'}`}>
+            <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
                 <header className="w-full py-1 lg:py-2 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto">
                     <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow">Panda Console</h1>
                     <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-xs lg:text-lg uppercase ${satCount === 0 ? 'text-red-500' : satCount <= 3 ? 'text-purple-500 animate-pulse' : 'text-emerald-500'}`}>
                         <Satellite size={isMobile ? 12 : 18} /> {satCount} Satellites
                     </div>
-                    {primaryLink && !isFPVActive && (
-                        <button onClick={activateFPV} className="absolute left-6 top-4 px-3 py-1 bg-emerald-500 text-black rounded-full text-[9px] font-bold animate-bounce shadow-lg">ACTIVATE FPV</button>
-                    )}
                     <div className="absolute right-4 top-4 size-3 rounded-full shadow-lg" style={{ backgroundColor: isArmedFromTel ? '#10b981' : '#dc2626' }} />
                 </header>
 
+                {/* ALTITUDE SIDEBAR */}
                 <div className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 lg:gap-2 z-50 pointer-events-auto">
                     <span className="text-[10px] text-blue-400 font-black font-mono">{altitude}m</span>
                     <div className="relative w-6 h-32 lg:w-10 lg:h-72 bg-black/60 border border-blue-500/30 rounded-full flex flex-col-reverse p-0.5 overflow-hidden shadow-2xl">
@@ -261,7 +222,9 @@ export const MessagetestPage = () => {
                 </div>
 
                 <main className="flex-1 w-full flex flex-row items-end justify-between px-2 pb-2 lg:px-12 lg:pb-12">
-                    <div className="w-1/3 flex items-center justify-start gap-8 lg:gap-20 pointer-events-auto">
+                    
+                    {/* LEFT SECTION (JOYSTICK + TAKEOFF) */}
+                    <div className="flex-1 flex items-center justify-start gap-12 lg:gap-20 pointer-events-auto">
                         <div className="flex flex-col items-center">
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Movement</p>
                             <Joystick onMove={(dx, dy, r) => {
@@ -271,26 +234,37 @@ export const MessagetestPage = () => {
                                 leftJoyDirs.current = d;
                             }} />
                         </div>
-                        <button onClick={handleTakeoff5m} className="size-20 lg:size-28 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)] active:scale-90 transition-all hover:bg-emerald-500 hover:text-black group">
-                            <Rocket className="size-8 lg:size-12 group-hover:animate-bounce" />
-                            <span className="text-[10px] lg:text-xs font-black uppercase mt-1">Fly 5m</span>
+                        
+                        <button onClick={handleTakeoff5m} className="size-20 lg:size-24 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-lg active:scale-90 transition-all hover:bg-emerald-500 hover:text-black">
+                            <Rocket className="size-6 lg:size-8" />
+                            <span className="text-[8px] lg:text-[10px] font-black">FLY 5M</span>
                         </button>
                     </div>
 
+                    {/* CENTER HUD & SLIDER */}
                     <div className="flex-1 flex flex-row items-end justify-center gap-3 lg:gap-10 mb-2 pointer-events-auto">
                         <div className="flex flex-col gap-2 w-28 lg:w-80 justify-end">
-                            <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-2 rounded-xl text-center min-h-[40px] flex items-center justify-center'>
-                                <p className="text-[8px] lg:text-[11px] text-white font-mono uppercase font-black">{tel?.status_msg || "OFFLINE"}</p>
+                            <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-1.5 lg:p-2 rounded-xl shadow-2xl w-full text-center'>
+                                <p className={`text-[8px] lg:text-[11px] font-black uppercase ${isArmedFromTel ? "text-emerald-400" : "text-red-500"}`}>
+                                    {tel?.status_msg || "OFFLINE"}
+                                </p>
+                                <div className="grid grid-cols-3 text-center text-[#2dd4bf] font-mono text-[7px] lg:text-[13px] border-t border-white/5 mt-1 pt-1">
+                                    <div><p className="text-gray-500 text-[5px]">X</p>{lat.toFixed(1)}</div>
+                                    <div><p className="text-gray-500 text-[5px]">Y</p>{lon.toFixed(1)}</div>
+                                    <div><p className="text-gray-500 text-[5px]">θ</p>{tel?.theta?.toFixed(1) || "0.0"}</div>
+                                </div>
                             </div>
                             <button onClick={handleForceDisarm} className="w-full py-1.5 bg-red-600/20 border border-red-500/40 rounded-lg text-red-500 font-black text-[8px] lg:text-[10px] uppercase active:scale-95 shadow-xl">FORCE KILL</button>
                         </div>
 
+                        {/* SLIDER BLOCK */}
                         <div ref={sliderRef} style={{ touchAction: 'none' }}
                             onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setIsDraggingSlider(true); hasTriggeredAction.current = false; }}
                             onPointerMove={(e) => {
                                 if (!isDraggingSlider || !sliderRef.current) return;
                                 const rect = sliderRef.current.getBoundingClientRect();
-                                let dy = (e.touches ? e.touches[0].clientY : e.clientY) - (rect.top + rect.height / 2);
+                                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                                let dy = clientY - (rect.top + rect.height / 2);
                                 const maxRange = rect.height / 2 - 10;
                                 dy = Math.max(-maxRange, Math.min(maxRange, dy)); setYPos(dy);
                                 if (!hasTriggeredAction.current) {
@@ -303,15 +277,14 @@ export const MessagetestPage = () => {
                         >
                             <div className="absolute top-2 text-[5px] lg:text-[7px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
                             <div className="absolute bottom-2 text-[5px] lg:text-[7px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
-                            <div className="w-full h-0.5 bg-white/10 absolute" />
-                            <div className={`absolute w-8 h-8 lg:w-12 lg:h-12 flex items-center justify-center transition-all animate-pulse ${(isArmedFromTel || yPos < -15) ? "bg-emerald-500 rounded-md shadow-[0_0_15px_#10b981]" : (yPos > 15) ? "bg-orange-500 rounded-full shadow-[0_0_15px_#f97316]" : "bg-purple-600 shadow-[0_0_15px_#9333ea]"}`}
+                            <div className={`absolute w-8 h-8 lg:w-12 lg:h-12 flex items-center justify-center transition-all animate-pulse ${(isArmedFromTel || yPos < -15) ? "bg-emerald-500 rounded-md" : (yPos > 15) ? "bg-orange-500 rounded-full" : "bg-purple-600"}`}
                                 style={{ transform: `translateY(${yPos}px)`, clipPath: (isArmedFromTel || yPos < -15 || yPos > 15) ? "none" : "polygon(50% 0%, 0% 100%, 100% 100%)" }}>
-                                {(isArmedFromTel || yPos < -15) ? <Power size={18} /> : (yPos > 15) ? <ArrowDownToLine size={18} /> : <Circle size={8} fill="white" />}
+                                {(isArmedFromTel || yPos < -15) ? <Power size={14} /> : (yPos > 15) ? <ArrowDownToLine size={14} /> : <Circle size={6} fill="white" />}
                             </div>
                         </div>
                     </div>
 
-                    <div className="w-1/3 flex justify-end pr-12 lg:pr-0 pointer-events-auto">
+                    <div className="flex-1 flex justify-end pr-12 lg:pr-0 pointer-events-auto">
                         <div className="flex flex-col items-center">
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Yaw / Rotate</p>
                             <Joystick onMove={(dx, dy, r) => {
@@ -329,9 +302,11 @@ export const MessagetestPage = () => {
                 className={`transition-all duration-500 z-[100] border-2 border-emerald-500/30 overflow-hidden 
                 ${isMapExpanded ? 'absolute top-0 right-0 w-1/2 h-screen border-l bg-black shadow-[-20px_0_30px_rgba(0,0,0,0.5)] pointer-events-auto' : 'absolute top-4 right-4 w-24 h-24 lg:w-32 lg:h-32 rounded-2xl'}`}>
                 <div className="absolute top-3 left-3 flex flex-col gap-2 z-[1001]">
-                    <button onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }} className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-emerald-400"><Sun size={14} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }} className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-emerald-400">
+                        {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
+                    </button>
                 </div>
-                {isMapExpanded && <button onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} className="absolute top-3 right-3 z-[1001] bg-red-600 p-2 rounded-lg text-white shadow-lg pointer-events-auto"><X size={20} /></button>}
+                {isMapExpanded && <button onClick={(e) => {e.stopPropagation(); setIsExpanded(false);}} className="absolute top-3 right-3 z-[1001] bg-red-600 p-2 rounded-lg text-white shadow-lg pointer-events-auto"><X size={20}/></button>}
                 <MapContainer center={position} zoom={16} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
                     <TileLayer url={mapTiles} />
                     <Marker position={position} key={`${lat}-${lon}`} />
@@ -340,10 +315,10 @@ export const MessagetestPage = () => {
                 </MapContainer>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
+            <style dangerouslySetInnerHTML={{ __html: `
                 .green-glow { text-shadow: 0 0 10px rgba(45, 212, 191, 0.6); } 
                 .vertical-text { writing-mode: vertical-rl; }
+                input[type=range] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; }
                 * { -webkit-tap-highlight-color: transparent !important; }
             ` }} />
         </div>
