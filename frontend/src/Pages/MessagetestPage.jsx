@@ -180,7 +180,32 @@ export const MessagetestPage = () => {
             <div className="absolute inset-0 z-0 bg-[#050a05] flex items-center justify-center">
                 {primaryLink ? (
                     <iframe src={primaryLink} className="w-full h-full border-none opacity-90 block" allow="autoplay; fullscreen" />
-                ) : <div className="text-emerald-500/20 uppercase font-black">Connecting FPV...</div>}
+                ) :
+                    <div className="relative flex flex-col items-center justify-center">
+                        {/* Outer Ring 1 */}
+                        <div className="absolute size-40 border-2 border-emerald-500/20 rounded-full animate-ping" />
+
+                        {/* Middle Ring 2 (Delayed) */}
+                        <div className="absolute size-24 border-2 border-emerald-500/40 rounded-full animate-ping [animation-delay:0.5s]" />
+
+                        {/* Center Core */}
+                        <div className="relative size-8 bg-emerald-500 rounded-full shadow-[0_0_20px_#10b981] flex items-center justify-center">
+                            <div className="size-2 bg-black rounded-full animate-pulse" />
+                        </div>
+
+                        {/* Status Text */}
+                        <div className="mt-48 flex flex-col items-center gap-1">
+                            <p className="text-emerald-400 font-mono text-[10px] lg:text-xs tracking-[0.3em] uppercase animate-pulse">
+                                Waiting For FPV feed
+                            </p>
+                            <div className="flex gap-1">
+                                <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                <span className="size-1 bg-emerald-500 rounded-full animate-bounce" />
+                            </div>
+                        </div>
+                    </div>
+                }
                 <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_200px_rgba(0,0,0,0.9)]" />
             </div>
 
