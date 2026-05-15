@@ -3,7 +3,7 @@ import { useAuthState } from '../Store/useAuthStore';
 import {
     ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
     RotateCcw, RotateCw, ArrowUp, ArrowDown, Power,
-    ArrowDownToLine, Circle, ShieldAlert, ExternalLink, Rocket, Signal, Sun, Moon, Satellite, X
+    ArrowDownToLine, Circle, ShieldAlert, ExternalLink, X, Maximize2, Rocket, Signal, Sun, Moon, Satellite
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -34,7 +34,7 @@ const MapResizer = ({ isExpanded }) => {
     return null;
 };
 
-// --- JOYSTICK COMPONENT ---
+// --- JOYSTICK COMPONENT (MOBILE FIX) ---
 const Joystick = memo(({ onMove }) => {
     const baseRef = useRef(null);
     const stickRef = useRef(null);
@@ -42,24 +42,37 @@ const Joystick = memo(({ onMove }) => {
 
     const handleMove = (e) => {
         if (!isInteracting || !baseRef.current || !stickRef.current) return;
-        const touch = e.touches ? e.touches[0] : e;
+
+        // MOBILE FIX: Get coordinates from touch or mouse
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
         const rect = baseRef.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        let dx = touch.clientX - centerX;
-        let dy = touch.clientY - centerY;
-        const max = rect.width / 2;
+
+        let dx = clientX - centerX;
+        let dy = clientY - centerY;
+        const maxRadius = rect.width / 2;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > max) { dx *= max / dist; dy *= max / dist; }
+
+        if (dist > maxRadius) { dx *= maxRadius / dist; dy *= maxRadius / dist; }
         stickRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
-        onMove(dx, dy, max);
+        onMove(dx, dy, maxRadius);
     };
 
     return (
-        <div className="relative flex flex-col items-center pointer-events-auto">
+        <div className="relative flex flex-col items-center pointer-events-auto" style={{ touchAction: 'none' }}>
             <div ref={baseRef} className="w-24 h-24 lg:w-40 lg:h-40 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center backdrop-blur-sm touch-none"
                 onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setIsInteracting(true); }}
-                onPointerMove={handleMove} onPointerUp={() => { setIsInteracting(false); stickRef.current.style.transform = 'translate(0px, 0px)'; onMove(0, 0, 1); }}>
+                onPointerMove={handleMove}
+                onPointerUp={() => { setIsInteracting(false); stickRef.current.style.transform = 'translate(0px, 0px)'; onMove(0, 0, 1); }}
+                onPointerCancel={() => { setIsInteracting(false); stickRef.current.style.transform = 'translate(0px, 0px)'; onMove(0, 0, 1); }}
+            >
+                <div className="absolute inset-0 pointer-events-none opacity-20 flex items-center justify-center">
+                    <div className="w-full h-0.5 bg-emerald-500" />
+                    <div className="h-full w-0.5 bg-emerald-500 absolute" />
+                </div>
                 <div ref={stickRef} className="w-8 h-8 lg:w-14 lg:h-14 rounded-full bg-[#2dd4bf] shadow-2xl pointer-events-none" />
             </div>
         </div>
@@ -68,9 +81,7 @@ const Joystick = memo(({ onMove }) => {
 
 export const MessagetestPage = () => {
     const { socket } = useAuthState();
-
-    // --- STATES ---
-    const [gotTheMessage, setGotTheMessage] = useState(null); // FIXED: Added this missing state
+    const [gotTheMessage, setGotTheMessage] = useState(null);
     const [gotTheTelMessage, setGotTheTelMessage] = useState(null);
     const [isMapExpanded, setIsExpanded] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
@@ -80,12 +91,10 @@ export const MessagetestPage = () => {
     const [primaryLink, setPrimaryLink] = useState(null);
     const [isFPVActive, setIsFPVActive] = useState(false);
 
-    // Check utilities
     const [isMobile] = useState(/Mobi|Android|iPhone/i.test(navigator.userAgent));
     const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
     const [isFullScreen, setIsFullScreen] = useState(false);
 
-    // --- REFS ---
     const activeKeys = useRef(new Set());
     const leftJoyDirs = useRef(new Set());
     const rightJoyDirs = useRef(new Set());
@@ -95,13 +104,10 @@ export const MessagetestPage = () => {
     const hasTriggeredAction = useRef(false);
     const lastEmitTime = useRef(Date.now());
 
-    // --- DATA CALCULATIONS ---
     const tel = gotTheTelMessage?.theTelMessage;
     const isArmedFromTel = tel?.is_armable || false;
     const gpsData = tel?.gps_raw || {};
     const satCount = gpsData.sats || 0;
-    const lat = gpsData.lat ? Number(gpsData.lat) : 31.78766801261319;
-    const lon = gpsData.lon ? Number(gpsData.lon) : 35.21756140744145;
 
     const getSatColor = () => {
         if (satCount === 0) return "text-red-500";
@@ -109,21 +115,21 @@ export const MessagetestPage = () => {
         return "text-emerald-500";
     };
 
-    const position = useMemo(() => [gpsData.lat || 31.78766801261319, gpsData.lon || 35.21756140744145], [gpsData.lat, gpsData.lon]);
+    const lat = gpsData.lat ? Number(gpsData.lat) : 23.8103;
+    const lon = gpsData.lon ? Number(gpsData.lon) : 90.4125;
+    const position = useMemo(() => [lat, lon], [lat, lon]);
+
     const mapTiles = isDarkMode
         ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
-    // --- SOCKET LOGIC ---
     useEffect(() => {
         if (!socket) return;
-
         socket.on("message", (msg) => setGotTheMessage(msg));
-
-        socket.on("telemetryMessage", (data) => {
-            setGotTheTelMessage(data);
+        socket.on("telemetryMessage", (tel) => {
+            setGotTheTelMessage(tel);
             setPing(Date.now() - lastEmitTime.current);
-            const incomingUrl = data.theTelMessage?.cam_url;
+            const incomingUrl = tel.theTelMessage?.cam_url;
             if (incomingUrl && incomingUrl !== primaryLink) {
                 setPrimaryLink(incomingUrl);
                 setIsFPVActive(false);
@@ -144,7 +150,6 @@ export const MessagetestPage = () => {
         return () => clearInterval(interval);
     }, [socket, altitude]);
 
-    // --- KEYBOARD ---
     useEffect(() => {
         const keyMap = { 'w': 'forward', 's': 'backward', 'a': 'left', 'd': 'right', 'arrowup': 'up', 'arrowdown': 'down', 'arrowleft': 'rotate_left', 'arrowright': 'rotate_right', 'k': 'arm', 'l': 'land' };
         const down = (e) => { if (keyMap[e.key.toLowerCase()]) { e.preventDefault(); activeKeys.current.add(keyMap[e.key.toLowerCase()]); } };
@@ -153,8 +158,8 @@ export const MessagetestPage = () => {
         return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
     }, []);
 
-    const handleForceDisarm = () => socket?.emit('user-message', { commands: ["force_disarm"], altitude });
     const handleTakeoff5m = () => socket?.emit('user-message', { commands: ["fly"], altitude: 5 });
+    const handleForceDisarm = () => socket?.emit('user-message', { commands: ["force_disarm"], altitude });
     const activateFPV = () => { window.open(primaryLink, '_blank'); setIsFPVActive(true); };
 
     const enterLandscapeConsole = async () => {
@@ -179,85 +184,76 @@ export const MessagetestPage = () => {
             {/* LAYER 0: FPV BACKGROUND */}
             <div className="absolute inset-0 z-0 bg-[#050a05] flex items-center justify-center">
                 {primaryLink ? (
-                    <iframe src={primaryLink} className="w-full h-full border-none opacity-90 block" allow="autoplay; fullscreen" />
-                ) :
+                    <iframe src={primaryLink} className="w-full h-full border-none opacity-90 block" allow="autoplay; fullscreen" sandbox="allow-forms allow-scripts allow-same-origin allow-popups" key={primaryLink} />
+                ) : (
                     <div className="relative flex flex-col items-center justify-center">
-                        {/* Outer Ring 1 */}
                         <div className="absolute size-40 border-2 border-emerald-500/20 rounded-full animate-ping" />
-
-                        {/* Middle Ring 2 (Delayed) */}
                         <div className="absolute size-24 border-2 border-emerald-500/40 rounded-full animate-ping [animation-delay:0.5s]" />
-
-                        {/* Center Core */}
                         <div className="relative size-8 bg-emerald-500 rounded-full shadow-[0_0_20px_#10b981] flex items-center justify-center">
                             <div className="size-2 bg-black rounded-full animate-pulse" />
                         </div>
-
-                        {/* Status Text */}
-                        <div className="mt-48 flex flex-col items-center gap-1">
-                            <p className="text-emerald-400 font-mono text-[10px] lg:text-xs tracking-[0.3em] uppercase animate-pulse">
-                                Waiting For FPV feed
-                            </p>
-                            <div className="flex gap-1">
-                                <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                                <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                                <span className="size-1 bg-emerald-500 rounded-full animate-bounce" />
-                            </div>
-                        </div>
+                        <div className="mt-48"><p className="text-emerald-400 font-mono text-[10px] tracking-[0.3em] uppercase animate-pulse">Waiting For FPV feed</p></div>
                     </div>
-                }
+                )}
                 <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_200px_rgba(0,0,0,0.9)]" />
             </div>
 
-            {/* TOP LEFT: TELEMETRY (LARGER) */}
-            <div className="absolute top-14 lg:top-16 left-4 z-30 flex flex-col gap-1 text-[10px] lg:text-[13px] font-mono text-emerald-400 pointer-events-none bg-black/40 p-3 rounded-xl border border-white/10 backdrop-blur-sm shadow-xl">
+            {/* TELEMETRY HUD (FPS STYLE) */}
+            <div className="absolute top-14 lg:top-16 left-4 z-30 flex flex-col gap-1 text-[11px] lg:text-[14px] font-mono text-emerald-400 pointer-events-none bg-black/40 p-3 rounded-xl border border-white/10 backdrop-blur-sm shadow-xl">
                 <div className="flex items-center gap-2 mb-1 border-b border-emerald-500/20 pb-1 text-blue-400">
                     <Signal size={14} />
-                    <span className="font-bold tracking-widest">Ping: {ping}ms</span>
+                    <span className="font-bold uppercase tracking-widest">Ping: {ping}ms</span>
                 </div>
                 <p>LAT: {gpsData.lat?.toFixed(6) || "---"}</p>
                 <p>LON: {gpsData.lon?.toFixed(6) || "---"}</p>
-                <p className="text-blue-400 font-bold">ALT: {gpsData.alt?.toFixed(1) || "0.0"}M</p>
+                <p className="text-blue-400">ALT: {gpsData.alt?.toFixed(1) || "0.0"}M</p>
                 <p>SPD: {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
             </div>
 
             {/* COMMAND LINE SHOWER */}
             <div className="absolute top-16 lg:top-24 left-1/2 -translate-x-1/2 z-20 flex gap-2 pointer-events-none">
                 {visualCmds.length > 0 ? visualCmds.map((c, i) => (
-                    <span key={i} className="px-3 py-1 bg-black/60 border border-emerald-500/40 text-[#2dd4bf] font-mono text-[10px] uppercase rounded shadow-lg animate-in fade-in zoom-in duration-75">{c}</span>
-                )) : <span className="text-white/5 font-mono text-[10px] uppercase tracking-widest">Listening...</span>}
+                    <span key={i} className="px-3 py-1 bg-black/60 border border-emerald-500/40 text-[#2dd4bf] font-mono text-[10px] uppercase rounded shadow-lg">{c}</span>
+                )) : <span className="text-white/5 font-mono text-[10px] uppercase">Listening...</span>}
             </div>
 
             {/* UI LAYER */}
             <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
+
+                {isMobile && (!isLandscape || !isFullScreen) && (
+                    <div className="fixed inset-0 z-[100] bg-[#050a05] flex flex-col items-center justify-center text-center p-6 text-white font-bold pointer-events-auto">
+                        <button onClick={enterLandscapeConsole} className="bg-[#2dd4bf] text-black font-bold py-2 px-6 rounded-full text-sm">START CONSOLE</button>
+                    </div>
+                )}
+
                 <header className="w-full py-1 lg:py-2 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto">
                     <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow">Panda Console</h1>
                     <div className={`flex items-center gap-1 mt-0.5 ${getSatColor()}`}>
                         <Satellite size={14} />
-                        <span className="text-xs lg:text-base font-black font-mono uppercase tracking-tighter">{satCount} Satellites</span>
+                        <span className="text-xs lg:text-base font-black font-mono uppercase">{satCount} Satellites</span>
                     </div>
                     {primaryLink && !isFPVActive && (
                         <button onClick={activateFPV} className="absolute left-6 top-4 px-3 py-1 bg-emerald-500 text-black rounded-full text-[9px] font-bold animate-bounce shadow-lg">ACTIVATE FPV</button>
                     )}
-                    <div className="absolute right-4 top-4 size-3 rounded-full" style={{ backgroundColor: isArmedFromTel ? '#10b981' : '#dc2626' }} />
+                    <div className="absolute right-4 top-4 size-3 rounded-full shadow-lg" style={{ backgroundColor: isArmedFromTel ? '#10b981' : '#dc2626' }} />
                 </header>
 
                 {/* ALTITUDE SIDEBAR */}
-                <div className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 z-50 pointer-events-auto">
-                    <span className="text-[10px] text-blue-400 font-black font-mono">{altitude}m</span>
-                    <div className="relative w-6 h-32 lg:w-10 lg:h-64 bg-black/60 border border-blue-500/20 rounded-full flex flex-col-reverse p-0.5 overflow-hidden">
+                <div className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 lg:gap-2 z-50 pointer-events-auto">
+                    <span className="text-[10px] text-blue-400 font-black">{altitude}m</span>
+                    <div className="relative w-6 h-32 lg:w-10 lg:h-64 bg-black/60 border border-blue-500/30 rounded-full flex flex-col-reverse p-0.5 overflow-hidden">
                         <input type="range" min="0" max="20" step="1" value={altitude} onChange={(e) => setAltitude(parseInt(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full appearance-none" style={{ WebkitAppearance: 'slider-vertical' }} />
-                        <div className="w-full bg-gradient-to-t from-blue-700 to-blue-400 rounded-full transition-all duration-300" style={{ height: `${(altitude / 20) * 100}%` }} />
+                        <div className="w-full bg-blue-500 rounded-full transition-all duration-300" style={{ height: `${(altitude / 20) * 100}%` }} />
                     </div>
-                    <p className="text-[7px] text-blue-500 uppercase font-black vertical-text mt-1">Set Alt</p>
+                    <p className="text-[7px] lg:text-[8px] text-blue-500 uppercase font-black vertical-text mt-1">Altitude</p>
                 </div>
 
-                <main className="flex-1 w-full flex flex-row items-end justify-between px-4 pb-4 lg:px-12 lg:pb-12">
+                <main className="flex-1 w-full flex flex-row items-end justify-between px-2 pb-2 lg:px-12 lg:pb-12">
 
-                    {/* LEFT: JOYSTICK + BIG TAKEOFF (SHIFTED RIGHT) */}
-                    <div className="w-1/3 flex items-center justify-start gap-8 lg:gap-16 pointer-events-auto">
+                    {/* LEFT SECTION (JOY + FLY BUTTON) */}
+                    <div className="flex items-center gap-3 lg:gap-8 pointer-events-auto">
                         <div className="flex flex-col items-center">
-                            <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Movement</p>
+                            <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic">Movement</p>
                             <Joystick onMove={(dx, dy, r) => {
                                 const t = r * 0.3; const d = new Set();
                                 if (dy < -t) d.add("forward"); if (dy > t) d.add("backward");
@@ -266,114 +262,75 @@ export const MessagetestPage = () => {
                             }} />
                         </div>
 
-                        <button
-                            onClick={handleTakeoff5m}
-                            className="size-20 lg:size-22 ml-15 lg:ml-32 lg:mt-10 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)] active:scale-90 transition-all hover:bg-emerald-500 hover:text-black group self-center z-50 pointer-events-auto"                        >
-                            <Rocket className="size-8 lg:size-8 group-hover:animate-bounce" />
-                            <span className="text-[12px] font-black uppercase mt-1">Fly 5m</span>
+                        <button onClick={handleTakeoff5m} className="size-16 lg:size-20 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-lg active:scale-90 transition-all hover:bg-emerald-500 hover:text-black">
+                            <Rocket className="size-6 lg:size-8" />
+                            <span className="text-[8px] lg:text-[10px] font-black">FLY 5M</span>
                         </button>
                     </div>
 
-                    {/* CENTER HUD & SLIDER: SIDE-BY-SIDE */}
-                    <div className="flex-1 flex flex-row items-end justify-center gap-3 lg:gap-10 mb-2 pointer-events-auto">
+                    {/* CENTER SECTION (HUD + SLIDER) */}
+                    <div className="flex flex-row items-end justify-center gap-3 lg:gap-10 mb-2 pointer-events-auto">
                         <div className="flex flex-col gap-2 w-28 lg:w-80 justify-end">
-                            <div className='bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-lg text-center min-h-[40px] flex items-center justify-center'>
+                            <div className='bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-lg min-h-[35px] flex items-center justify-center text-center'>
                                 <p className="text-[7px] lg:text-[10px] text-white font-mono leading-tight">
-                                    {gotTheMessage ? <><span className="text-[#2dd4bf]">{gotTheMessage.name}</span>: {JSON.stringify(gotTheMessage.theMessage)}</> : ">> SYSTEM READY"}
+                                    {gotTheMessage ? <><span className="text-[#2dd4bf]">{gotTheMessage.name}</span>: {JSON.stringify(gotTheMessage.theMessage)}</> : ">> READY"}
                                 </p>
                             </div>
-                            <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-2 rounded-xl shadow-2xl w-full'>
+                            <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-1.5 lg:p-2 rounded-xl shadow-2xl w-full'>
                                 <p className={`text-center text-[8px] lg:text-[11px] font-black uppercase ${isArmedFromTel ? "text-emerald-400" : "text-red-500"}`}>
                                     {tel?.status_msg || "OFFLINE"}
                                 </p>
+                                <div className="grid grid-cols-3 text-center text-[#2dd4bf] font-mono text-[7px] lg:text-[13px] border-t border-white/5 mt-1 pt-1">
+                                    <div><p className="text-gray-500 text-[5px]">X</p>{gpsData.lat?.toFixed(1) || "0.0"}</div>
+                                    <div><p className="text-gray-500 text-[5px]">Y</p>{gpsData.lon?.toFixed(1) || "0.0"}</div>
+                                    <div><p className="text-gray-500 text-[5px]">θ</p>{tel?.theta?.toFixed(1) || "0.0"}</div>
+                                </div>
                             </div>
-                            <button onClick={handleForceDisarm} className="w-full py-1.5 bg-red-600/20 border border-red-500/40 rounded-lg text-red-500 font-black text-[8px] lg:text-[10px] uppercase active:scale-95 shadow-xl">FORCE KILL</button>
+                            <button onClick={handleForceDisarm} className="w-full py-1.5 bg-red-600/20 border border-red-500/40 rounded-lg text-red-500 font-black text-[8px] lg:text-[10px] uppercase">FORCE KILL</button>
                         </div>
 
-                        <div
-                            ref={sliderRef}
-                            // "touchAction: none" is critical for mobile to prevent the page from scrolling while dragging
-                            style={{ touchAction: 'none' }}
-                            onPointerDown={(e) => {
-                                e.currentTarget.setPointerCapture(e.pointerId);
-                                setIsDraggingSlider(true);
-                                hasTriggeredAction.current = false;
-                            }}
+                        {/* SLIDER BLOCK */}
+                        <div ref={sliderRef} style={{ touchAction: 'none' }}
+                            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setIsDraggingSlider(true); hasTriggeredAction.current = false; }}
                             onPointerMove={(e) => {
                                 if (!isDraggingSlider || !sliderRef.current) return;
                                 const rect = sliderRef.current.getBoundingClientRect();
-                                // Support both touch and mouse coords
                                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                                 let dy = clientY - (rect.top + rect.height / 2);
                                 const maxRange = rect.height / 2 - 10;
-                                dy = Math.max(-maxRange, Math.min(maxRange, dy));
-                                setYPos(dy);
-
+                                dy = Math.max(-maxRange, Math.min(maxRange, dy)); setYPos(dy);
                                 if (!hasTriggeredAction.current) {
-                                    if (dy < -maxRange * 0.8) {
-                                        socket?.emit('user-message', { commands: ["arm"], altitude });
-                                        hasTriggeredAction.current = true;
-                                    } else if (dy > maxRange * 0.8) {
-                                        socket?.emit('user-message', { commands: ["land"], altitude });
-                                        hasTriggeredAction.current = true;
-                                    }
+                                    if (dy < -maxRange * 0.8) { socket?.emit('user-message', { commands: ["arm"], altitude }); hasTriggeredAction.current = true; }
+                                    else if (dy > maxRange * 0.8) { socket?.emit('user-message', { commands: ["land"], altitude }); hasTriggeredAction.current = true; }
                                 }
                             }}
                             onPointerUp={() => { setIsDraggingSlider(false); setYPos(0); }}
-                            onPointerCancel={() => { setIsDraggingSlider(false); setYPos(0); }}
-                            className="relative w-10 lg:w-14 h-32 lg:h-56 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible"
+                            className="relative w-10 lg:w-14 h-32 lg:h-56 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm"
                         >
-                            {/* Labels */}
                             <div className="absolute top-2 text-[5px] lg:text-[7px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
                             <div className="absolute bottom-2 text-[5px] lg:text-[7px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
-
-                            {/* Center Line */}
                             <div className="w-full h-0.5 bg-white/10 absolute" />
-
-                            {/* FANCY DYNAMIC HANDLE */}
-                            <div
-                                className={`absolute w-8 h-8 lg:w-12 lg:h-12 flex items-center justify-center shadow-2xl transition-all duration-150 animate-pulse
-            ${(isArmedFromTel || yPos < -15)
-                                        ? "bg-emerald-500 rounded-md shadow-[0_0_20px_#10b981]" // Green Rectangle
-                                        : (yPos > 15)
-                                            ? "bg-orange-500 rounded-full shadow-[0_0_20px_#f97316]" // Orange Circle
-                                            : "bg-purple-600 shadow-[0_0_20px_#9333ea]" // Purple Triangle (Shape below)
-                                    }`}
-                                style={{
-                                    transform: `translateY(${yPos}px)`,
-                                    // Clip path creates the Triangle when in neutral state
-                                    clipPath: (isArmedFromTel || yPos < -15 || yPos > 15)
-                                        ? "none"
-                                        : "polygon(50% 0%, 0% 100%, 100% 100%)"
-                                }}
-                            >
-                                {/* Dynamic Icon */}
-                                {(isArmedFromTel || yPos < -15) ? (
-                                    <Power size={isMobile ? 12 : 16} className="text-black" />
-                                ) : (yPos > 15) ? (
-                                    <ArrowDownToLine size={isMobile ? 12 : 16} className="text-black" />
-                                ) : (
-                                    <Circle size={6} className="text-white mt-2" fill="white" />
-                                )}
+                            <div className={`absolute w-8 h-8 lg:w-12 lg:h-12 flex items-center justify-center transition-all animate-pulse ${(isArmedFromTel || yPos < -15) ? "bg-emerald-500 rounded-md" : (yPos > 15) ? "bg-orange-500 rounded-full" : "bg-purple-600"}`}
+                                style={{ transform: `translateY(${yPos}px)`, clipPath: (isArmedFromTel || yPos < -15 || yPos > 15) ? "none" : "polygon(50% 0%, 0% 100%, 100% 100%)" }}>
+                                {(isArmedFromTel || yPos < -15) ? <Power size={14} /> : (yPos > 15) ? <ArrowDownToLine size={14} /> : <Circle size={6} fill="white" />}
                             </div>
                         </div>
                     </div>
 
-                    {/* RIGHT: YAW STICK */}
-                    <div className="w-1/3 flex justify-end pr-12 lg:pr-0 pointer-events-auto">
-                        <div className="flex flex-col items-center">
-                            <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Yaw / Rotate</p>
-                            <Joystick onMove={(dx, dy, r) => {
-                                const t = r * 0.3; const d = new Set();
-                                if (dx < -t) d.add("rotate_left"); if (dx > t) d.add("rotate_right");
-                                rightJoyDirs.current = d;
-                            }} />
-                        </div>
+                    {/* RIGHT SECTION (JOYSTICK) - Padded for mobile */}
+                    <div className="flex flex-col items-center mb-2 lg:mb-10 pr-10 lg:pr-0 pointer-events-auto">
+                        <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic">Alt / Yaw</p>
+                        <Joystick onMove={(dx, dy, r) => {
+                            const t = r * 0.3; const d = new Set();
+                            if (dy < -t) d.add("up"); if (dy > t) d.add("down");
+                            if (dx < -t) d.add("rotate_left"); if (dx > t) d.add("rotate_right");
+                            rightJoyDirs.current = d;
+                        }} />
                     </div>
                 </main>
             </div>
 
-            {/* MAP OVERLAY */}
+            {/* MAP OVERLAY (TOP RIGHT) */}
             <div onClick={() => !isMapExpanded && setIsExpanded(true)}
                 className={`transition-all duration-500 z-[100] border-2 border-emerald-500/30 overflow-hidden 
                 ${isMapExpanded ? 'absolute top-0 right-0 w-1/2 h-screen border-l bg-black shadow-[-20px_0_30px_rgba(0,0,0,0.5)] pointer-events-auto' : 'absolute top-4 right-4 w-24 h-24 lg:w-32 lg:h-32 rounded-2xl'}`}>
@@ -391,13 +348,7 @@ export const MessagetestPage = () => {
                 </MapContainer>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .green-glow { text-shadow: 0 0 10px rgba(45, 212, 191, 0.6); } 
-                .vertical-text { writing-mode: vertical-rl; }
-                input[type=range] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; }
-                * { -webkit-tap-highlight-color: transparent !important; touch-action: none !important; }
-            ` }} />
+            <style dangerouslySetInnerHTML={{ __html: `* { -webkit-tap-highlight-color: transparent !important; } .vertical-text { writing-mode: vertical-rl; }` }} />
         </div>
     );
 };
