@@ -188,7 +188,7 @@ export const MessagetestPage = () => {
             <div className="absolute top-14 lg:top-16 left-4 z-30 flex flex-col gap-1 text-[10px] lg:text-[13px] font-mono text-emerald-400 pointer-events-none bg-black/40 p-3 rounded-xl border border-white/10 backdrop-blur-sm shadow-xl">
                 <div className="flex items-center gap-2 mb-1 border-b border-emerald-500/20 pb-1 text-blue-400">
                     <Signal size={14} />
-                    <span className="font-bold uppercase tracking-widest">Ping: {ping}ms</span>
+                    <span className="font-bold tracking-widest">Ping: {ping}ms</span>
                 </div>
                 <p>LAT: {gpsData.lat?.toFixed(6) || "---"}</p>
                 <p>LON: {gpsData.lon?.toFixed(6) || "---"}</p>
