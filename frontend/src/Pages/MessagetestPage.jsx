@@ -69,6 +69,7 @@ export const MessagetestPage = () => {
     
     // --- STATES ---
     const [isStarted, setIsStarted] = useState(false); 
+    const [isDraggingSlider, setIsDraggingSlider] = useState(false);
     const [gotTheMessage, setGotTheMessage] = useState(null);
     const [gotTheTelMessage, setGotTheTelMessage] = useState(null);
     const [isMapExpanded, setIsExpanded] = useState(false);
