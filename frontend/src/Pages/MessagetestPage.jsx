@@ -100,8 +100,8 @@ export const MessagetestPage = () => {
     const isArmedFromTel = tel?.is_armable || false;
     const gpsData = tel?.gps_raw || {};
     const satCount = gpsData.sats || 0;
-    const lat = gpsData.lat ? Number(gpsData.lat) : 23.8103;
-    const lon = gpsData.lon ? Number(gpsData.lon) : 90.4125;
+    const lat = gpsData.lat ? Number(gpsData.lat) : 31.78766801261319;
+    const lon = gpsData.lon ? Number(gpsData.lon) : 35.21756140744145;
 
     const getSatColor = () => {
         if (satCount === 0) return "text-red-500";
@@ -109,7 +109,7 @@ export const MessagetestPage = () => {
         return "text-emerald-500";
     };
 
-    const position = useMemo(() => [gpsData.lat || 23.8103, gpsData.lon || 90.4125], [gpsData.lat, gpsData.lon]);
+    const position = useMemo(() => [gpsData.lat || 31.78766801261319, gpsData.lon || 35.21756140744145], [gpsData.lat, gpsData.lon]);
     const mapTiles = isDarkMode
         ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
