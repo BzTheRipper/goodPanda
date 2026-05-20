@@ -81,9 +81,6 @@ export const MessagetestPage = () => {
     const [primaryLink, setPrimaryLink] = useState(null);
     const [isFPVActive, setIsFPVActive] = useState(false);
     const [isMobile] = useState(/Mobi|Android|iPhone/i.test(navigator.userAgent));
-    const [flightMode, setFlightMode] = useState("ALT_HOLD"); // Stages: ALT_HOLD, LOITER, GUIDED
-    const [hasInitialGpsAutoSwitch, setHasInitialGpsAutoSwitch] = useState(false);
-    const [speed, setSpeed] = useState(20);
 
     // --- REFS ---
     const sliderRef = useRef(null);
@@ -99,18 +96,6 @@ export const MessagetestPage = () => {
     const isArmedFromTel = tel?.is_armable || false;
     const gpsData = tel?.gps_raw || {};
     const satCount = gpsData.sats || 0;
-    const isGpsLocked = gpsData.fix_type >= 3;
-
-    // --- AUTO-SWITCH LOGIC ---
-    useEffect(() => {
-        if (isGpsLocked && !hasInitialGpsAutoSwitch) {
-            setFlightMode("LOITER");
-            setHasInitialGpsAutoSwitch(true);
-        } else if (!isGpsLocked) {
-            setFlightMode("ALT_HOLD");
-            setHasInitialGpsAutoSwitch(false);
-        }
-    }, [isGpsLocked, hasInitialGpsAutoSwitch]);
 
     // YOUR REQUESTED DEFAULT COORDS
     const lat = gpsData.lat ? Number(gpsData.lat) : 31.787396049566723;
@@ -130,94 +115,28 @@ export const MessagetestPage = () => {
     // --- LOGIC ---
     useEffect(() => {
         if (!socket) return;
-
-        // Verify connection
-        socket.on("connect", () => console.log("Web Connected to Server"));
-
-        // Listen for Drone Telemetry
-        const handleTel = (data) => {
-            console.log("Telemetry Received:", data); // Debugging
+        socket.on("message", setGotTheMessage);
+        socket.on("telemetryMessage", (data) => {
             setGotTheTelMessage(data);
             setPing(Date.now() - lastEmitTime.current);
-        };
+            if (data.theTelMessage?.cam_url && data.theTelMessage.cam_url !== primaryLink) {
+                setPrimaryLink(data.theTelMessage.cam_url);
+                setIsFPVActive(false);
+            }
+        });
+        return () => { socket.off("message"); socket.off("telemetryMessage"); };
+    }, [socket, primaryLink]);
 
-        socket.on("telemetryMessage", handleTel);
-
-        return () => {
-            socket.off("telemetryMessage", handleTel);
-        };
-    }, [socket]);
-
-    // Socket Emit Code
     useEffect(() => {
-        if (!socket || !socket.connected) return;
-
+        if (!socket) return;
         let interval = setInterval(() => {
-            const combined = new Set([
-                ...Array.from(activeKeys.current), 
-                ...Array.from(leftJoyDirs.current), 
-                ...Array.from(rightJoyDirs.current)
-            ]);
-
-            const payload = {
-                commands: Array.from(combined),
-                speed: speed,
-                flight_mode: flightMode,
-                altitude: altitude
-            };
-
-            // Record time for ping calculation
             lastEmitTime.current = Date.now();
-            
-            // Emit to Drone
-            socket.emit("user-message", { theMessage: payload });
+            const combined = new Set([...Array.from(activeKeys.current), ...Array.from(leftJoyDirs.current), ...Array.from(rightJoyDirs.current)]);
+            socket.emit("user-message", { commands: Array.from(combined), altitude });
             setVisualCommands(Array.from(combined));
         }, 100);
-
         return () => clearInterval(interval);
-    }, [socket, speed, flightMode, altitude]);
-
-    const ModeSlider = () => {
-        const modes = ["ALT_HOLD", "LOITER", "GUIDED"];
-        const currentIndex = modes.indexOf(flightMode);
-
-        const getModeColor = () => {
-            if (flightMode === "ALT_HOLD") return "bg-orange-500 shadow-orange-500/50";
-            if (flightMode === "LOITER") return "bg-purple-500 shadow-purple-500/50";
-            return "bg-emerald-500 shadow-emerald-500/50";
-        };
-
-        const handleModeChange = (newMode) => {
-            // Rules enforcement
-            if (!isGpsLocked && newMode !== "ALT_HOLD") return; // Block switch if no GPS
-            if (isGpsLocked && newMode === "ALT_HOLD") return; // Block Alt_Hold if GPS found
-            setFlightMode(newMode);
-        };
-
-        return (
-            <div className="flex flex-col items-center mt-2 pointer-events-auto">
-                <div className="relative w-40 h-8 flex items-center">
-                    {/* The Thick Track */}
-                    <div className={`absolute w-full h-2 rounded-full transition-colors duration-500 ${getModeColor()} opacity-20`} />
-                    <div className={`absolute h-2 rounded-full transition-all duration-500 ${getModeColor()}`} style={{ width: `${(currentIndex / 2) * 100}%`, left: 0 }} />
-
-                    {/* The 3 Stage Points */}
-                    <div className="absolute w-full flex justify-between px-1">
-                        {modes.map((m) => (
-                            <button
-                                key={m}
-                                onClick={() => handleModeChange(m)}
-                                className={`size-4 rounded-full border-2 border-white/20 z-10 transition-all ${flightMode === m ? getModeColor() : 'bg-black/60'}`}
-                            />
-                        ))}
-                    </div>
-                </div>
-                <span className={`text-[8px] font-black uppercase mt-1 tracking-tighter transition-colors ${getModeColor().replace('bg-', 'text-')}`}>
-                    {flightMode.replace('_', ' ')}
-                </span>
-            </div>
-        );
-    };
+    }, [socket, altitude]);
 
     const handleStartConsole = async () => {
         try {
@@ -255,13 +174,17 @@ export const MessagetestPage = () => {
 
             {/* LAYER 0: FPV BACKGROUND */}
             <div className="relative flex flex-col items-center justify-center">
-                {/* ... Radar Rings ... */}
-                <div className="relative size-10 bg-emerald-500/20 ...">
+                {/* Radar Rings (These are absolute, so they stay perfectly in the middle) */}
+                <div className="absolute size-48 border-2 border-emerald-500/10 rounded-full animate-ping" />
+                <div className="absolute size-32 border-2 border-emerald-500/20 rounded-full animate-ping [animation-delay:0.5s]" />
+
+                {/* Center Core */}
+                <div className="relative size-10 bg-emerald-500/20 rounded-full border border-emerald-500/50 shadow-[0_0_20px_#10b98133] flex items-center justify-center">
                     <div className="size-3 bg-emerald-500 rounded-full animate-pulse" />
                 </div>
 
-                {/* CHANGE: Removed 'absolute' and 'top', used 'mt-32' to space it from the center core */}
-                <div className="mt-32 w-64 text-center z-20">
+                {/* Status Text - FIXED POSITION FOR CENTERED LOOK */}
+                <div className="absolute top-20 lg:top-24 w-64 text-center">
                     <p className="text-emerald-400 font-mono text-[10px] lg:text-xs tracking-[0.3em] uppercase animate-pulse">
                         Waiting for FPV feed
                     </p>
@@ -295,11 +218,6 @@ export const MessagetestPage = () => {
                     </div>
                     <div className="absolute right-4 top-4 size-3 rounded-full shadow-lg" style={{ backgroundColor: isArmedFromTel ? '#10b981' : '#dc2626' }} />
                 </header>
-                {/* --- MODE SLIDER PLACEMENT --- */}
-                <div className='flex flex-col items-center'>
-                    <ModeSlider />
-                    {!isGpsLocked && <span className="text-[10px] text-red-500 font-bold mt-1">GPS REQUIRED FOR LOITER/GUIDED MODE</span>}
-                </div>
 
                 {/* ALTITUDE SIDEBAR */}
                 <div className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 lg:gap-2 z-50 pointer-events-auto">
@@ -332,51 +250,11 @@ export const MessagetestPage = () => {
                             <Rocket className="size-5 lg:size-8 group-hover:animate-bounce" />
                             <span className="text-[6.5px] lg:text-[8px] font-black uppercase leading-none mt-1 text-center">Fly 5m</span>
                         </button>
-
                     </div>
 
                     {/* CENTER HUD & SLIDER */}
                     <div className="flex-1 flex flex-row items-end justify-center gap-3 lg:gap-10 mb-2 pointer-events-auto">
                         <div className="flex flex-col gap-2 w-28 lg:w-80 justify-end">
-                            <div className='flex flex-col items-center w-full px-2 mb-4 pointer-events-auto'>
-                                {/* Label Row */}
-                                <div className="flex justify-between w-full px-1 mb-1">
-                                    <span className="text-[8px] lg:text-[10px] text-orange-400 font-black uppercase tracking-widest">Velocity Limit</span>
-                                    <span className="text-[10px] lg:text-[12px] text-orange-400 font-mono font-bold">{speed}%</span>
-                                </div>
-
-                                {/* Slider Container (Exact copy of Altitude design) */}
-                                <div className="relative w-full h-6 lg:h-8 bg-black/60 border border-orange-500/30 rounded-full p-0.5 overflow-hidden shadow-2xl flex items-center">
-
-                                    {/* 1. The Actual Input (Invisible Overlay) */}
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        step="5"
-                                        value={speed}
-                                        onChange={(e) => setSpeed(parseInt(e.target.value))}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-10"
-                                        style={{
-                                            WebkitAppearance: 'none',
-                                            appearance: 'none',
-                                            width: '100%',
-                                            height: '100%'
-                                        }}
-                                    />
-
-                                    {/* 2. Visual Progress Fill (Orange Gradient) */}
-                                    <div
-                                        className="h-full bg-gradient-to-r from-orange-700 to-orange-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(249,115,22,0.4)]"
-                                        style={{
-                                            width: `${speed}%` // Simple 0-100 math
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Sub-label */}
-                                <p className="text-[7px] lg:text-[8px] text-orange-500 uppercase font-black mt-2">Sensitivity Control</p>
-                            </div>
                             <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-1.5 lg:p-2 rounded-xl shadow-2xl w-full text-center'>
                                 <p className={`text-[8px] lg:text-[11px] font-black uppercase ${isArmedFromTel ? "text-emerald-400" : "text-red-500"}`}>
                                     {tel?.status_msg || "OFFLINE"}
@@ -402,7 +280,7 @@ export const MessagetestPage = () => {
                                 const rect = sliderRef.current.getBoundingClientRect();
 
                                 // SUPPORT: Fixes coordinate detection for both PC and Mobile
-                                const clientY = e.nativeEvent.clientY || e.clientY;
+                                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
                                 let dy = clientY - (rect.top + rect.height / 2);
 
                                 const maxRange = rect.height / 2 - 10;
@@ -483,7 +361,7 @@ export const MessagetestPage = () => {
                 className={`transition-all duration-500 z-[100] border-2 border-emerald-500/30 overflow-hidden 
     ${isMapExpanded
                         ? 'absolute top-0 right-0 w-1/2 h-screen border-l bg-black shadow-[-20px_0_30px_rgba(0,0,0,0.5)]'
-                        : 'absolute top-4 right-10 w-25 h-25 lg:w-28 lg:h-28 rounded-2xl shadow-xl cursor-pointer hover:border-emerald-400'
+                        : 'absolute top-4 right-16 w-20 h-20 lg:w-28 lg:h-28 rounded-2xl shadow-xl cursor-pointer hover:border-emerald-400'
                     }`}>
                 <div className="absolute top-3 left-3 flex flex-col gap-2 z-[1001]">
                     <button onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }} className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-emerald-400">
