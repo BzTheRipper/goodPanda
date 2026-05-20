@@ -337,10 +337,10 @@ export const MessagetestPage = () => {
 
                         <button
                             onClick={handleTakeoff5m}
-                            className="size-12 lg:size-20 ml-8 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-90 transition-all hover:bg-emerald-500 hover:text-black group"
+                            className="size-12 lg:size-22 ml-28 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-90 transition-all hover:bg-emerald-500 hover:text-black group"
                         >
                             <Rocket className="size-5 lg:size-8 group-hover:animate-bounce" />
-                            <span className="text-[6.5px] lg:text-[8px] font-black uppercase leading-none mt-1 text-center">Fly 5m</span>
+                            <span className="text-[6.5px] lg:text-[15px] font-black leading-none mt-1 text-center">Fly 5m</span>
                         </button>
 
                     </div>
@@ -388,13 +388,15 @@ export const MessagetestPage = () => {
                                 <p className="text-[7px] lg:text-[8px] text-orange-500 uppercase font-black mt-2">Sensitivity Control</p>
                             </div>
                             <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-1.5 lg:p-2 rounded-xl shadow-2xl w-full text-center'>
-                                <p className={`text-[8px] lg:text-[11px] font-black uppercase ${isArmedFromTel ? "text-emerald-400" : "text-red-500"}`}>
-                                    {tel?.status_msg || "OFFLINE"}
+                                {/* Label shows Python's status_msg if online, otherwise "OFFLINE" */}
+                                <p className={`text-xs lg:text-sm font-black uppercase ${droneOnline ? "text-emerald-400" : "text-red-500"}`}>
+                                    {droneOnline ? (tel?.status_msg || "LINKED") : "OFFLINE"}
                                 </p>
+
                                 <div className="grid grid-cols-3 text-center text-[#2dd4bf] font-mono text-[7px] lg:text-[13px] border-t border-white/5 mt-1 pt-1">
-                                    <div><p className="text-gray-500 text-[5px]">X</p>{lat.toFixed(1)}</div>
-                                    <div><p className="text-gray-500 text-[5px]">Y</p>{lon.toFixed(1)}</div>
-                                    <div><p className="text-gray-500 text-[5px]">θ</p>{tel?.theta?.toFixed(1) || "0.0"}</div>
+                                    <div><p className="text-gray-500 text-[15px]">X</p>{droneOnline ? lat.toFixed(1) : "0.0"}</div>
+                                    <div><p className="text-gray-500 text-[15px]">Y</p>{droneOnline ? lon.toFixed(1) : "0.0"}</div>
+                                    <div><p className="text-gray-500 text-[15px]">θ</p>{droneOnline ? (tel?.theta?.toFixed(1) || "0.0") : "0.0"}</div>
                                 </div>
                             </div>
                             <button onClick={handleForceDisarm} className="w-full py-1.5 bg-red-600/20 border border-red-500/40 rounded-lg text-red-500 font-black text-[8px] lg:text-[10px] uppercase active:scale-95 shadow-xl">FORCE KILL</button>
