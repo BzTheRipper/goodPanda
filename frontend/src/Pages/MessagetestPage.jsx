@@ -84,6 +84,8 @@ export const MessagetestPage = () => {
     const [flightMode, setFlightMode] = useState("ALT_HOLD"); // Stages: ALT_HOLD, LOITER, GUIDED
     const [hasInitialGpsAutoSwitch, setHasInitialGpsAutoSwitch] = useState(false);
     const [speed, setSpeed] = useState(20);
+    const [droneOnline, setDroneOnline] = useState(false);
+    const lastTelTime = useRef(Date.now()); // Tracks when the last telemetry packet arrived
 
     // --- REFS ---
     const sliderRef = useRef(null);
@@ -132,8 +134,12 @@ export const MessagetestPage = () => {
         if (!socket) return;
         socket.on("message", setGotTheMessage);
         socket.on("telemetryMessage", (data) => {
+            lastTelTime.current = Date.now(); // Update watchdog
             setGotTheTelMessage(data);
-            setPing(Date.now() - lastEmitTime.current);
+
+            // Accurate Ping: Time difference between sending a command and getting telemetry back
+            const latency = Date.now() - lastEmitTime.current;
+            setPing(latency > 1000 ? 999 : latency); // Cap at 999ms for UI cleanliness
             if (data.theTelMessage?.cam_url && data.theTelMessage.cam_url !== primaryLink) {
                 setPrimaryLink(data.theTelMessage.cam_url);
                 setIsFPVActive(false);
@@ -141,6 +147,19 @@ export const MessagetestPage = () => {
         });
         return () => { socket.off("message"); socket.off("telemetryMessage"); };
     }, [socket, primaryLink]);
+
+    // --- CONNECTION WATCHDOG ---
+    useEffect(() => {
+        const checkConnection = setInterval(() => {
+            // If it's been more than 2 seconds since last telemetry, set offline
+            if (Date.now() - lastTelTime.current > 2000) {
+                setDroneOnline(false);
+            } else {
+                setDroneOnline(true);
+            }
+        }, 1000);
+        return () => clearInterval(checkConnection);
+    }, []);
 
     // Socket Emit Code
     useEffect(() => {
@@ -154,7 +173,7 @@ export const MessagetestPage = () => {
                 altitude: altitude
             });
             setVisualCommands(Array.from(combined));
-        }, 100);
+        }, 20);
         return () => clearInterval(interval);
     }, [socket, speed, flightMode, altitude]);
 
@@ -257,8 +276,9 @@ export const MessagetestPage = () => {
             {/* TELEMETRY HUD (FPS STYLE) */}
             <div className="absolute top-14 lg:top-16 left-4 z-30 flex flex-col gap-0.5 text-[9px] lg:text-[12px] font-mono text-emerald-400 pointer-events-none bg-black/40 p-2 lg:p-3 rounded-lg border border-white/10 backdrop-blur-sm shadow-xl">
                 <div className="flex items-center gap-1.5 mb-0.5 border-b border-emerald-500/20 pb-1 text-blue-400">
-                    <Signal size={12} />
-                    <span className="font-bold tracking-tighter text-[8px] lg:text-[10px]">Ping: {ping}ms</span>
+                    <Signal size={16} />
+                    {/* Increased text size to text-sm (mobile) and text-lg (desktop) */}
+                    <span className="font-black tracking-tighter text-sm">Ping: {ping} ms</span>
                 </div>
                 <p><span className="opacity-40">Lat:</span> {gpsData.lat?.toFixed(6) || "---"}</p>
                 <p><span className="opacity-40">Lon:</span> {gpsData.lon?.toFixed(6) || "---"}</p>
@@ -271,10 +291,19 @@ export const MessagetestPage = () => {
             <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
                 <header className="w-full py-1 lg:py-2 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto">
                     <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow">Panda Console</h1>
-                    <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-xs lg:text-lg uppercase ${satCount === 0 ? 'text-red-500' : satCount <= 3 ? 'text-purple-500 animate-pulse' : 'text-emerald-500'}`}>
-                        <Satellite size={isMobile ? 12 : 18} /> {satCount} Satellites
+
+                    {/* Satellite color changes based on online status */}
+                    <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-xs lg:text-lg uppercase ${!droneOnline ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
+                        <Satellite size={isMobile ? 12 : 18} /> {droneOnline ? satCount : 0} Satellites
                     </div>
-                    <div className="absolute right-4 top-4 size-3 rounded-full shadow-lg" style={{ backgroundColor: isArmedFromTel ? '#10b981' : '#dc2626' }} />
+
+                    {/* THE STATUS LIGHT: Green if droneOnline is true, Red otherwise */}
+                    <div className="absolute right-4 top-4 size-4 rounded-full shadow-lg transition-all duration-500"
+                        style={{
+                            backgroundColor: droneOnline ? '#10b981' : '#dc2626',
+                            boxShadow: droneOnline ? '0 0 15px #10b981' : '0 0 15px #dc2626'
+                        }}
+                    />
                 </header>
                 {/* --- MODE SLIDER PLACEMENT --- */}
                 <div className='flex flex-col items-center'>
