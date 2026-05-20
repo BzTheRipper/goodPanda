@@ -62,13 +62,14 @@ const Joystick = memo(({ onMove }) => {
             </div>
         </div>
     );
+
 });
 
 export const MessagetestPage = () => {
     const { socket } = useAuthState();
-    
+
     // --- STATES ---
-    const [isStarted, setIsStarted] = useState(false); 
+    const [isStarted, setIsStarted] = useState(false);
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
     const [gotTheMessage, setGotTheMessage] = useState(null);
     const [gotTheTelMessage, setGotTheTelMessage] = useState(null);
@@ -80,6 +81,11 @@ export const MessagetestPage = () => {
     const [primaryLink, setPrimaryLink] = useState(null);
     const [isFPVActive, setIsFPVActive] = useState(false);
     const [isMobile] = useState(/Mobi|Android|iPhone/i.test(navigator.userAgent));
+    const [flightMode, setFlightMode] = useState("ALT_HOLD"); // Stages: ALT_HOLD, LOITER, GUIDED
+    const [hasInitialGpsAutoSwitch, setHasInitialGpsAutoSwitch] = useState(false);
+    const [speed, setSpeed] = useState(20);
+    const [droneOnline, setDroneOnline] = useState(false);
+    const lastTelTime = useRef(Date.now()); // Tracks when the last telemetry packet arrived
 
     // --- REFS ---
     const sliderRef = useRef(null);
@@ -95,6 +101,18 @@ export const MessagetestPage = () => {
     const isArmedFromTel = tel?.is_armable || false;
     const gpsData = tel?.gps_raw || {};
     const satCount = gpsData.sats || 0;
+    const isGpsLocked = gpsData.fix_type >= 3;
+
+    // --- AUTO-SWITCH LOGIC ---
+    useEffect(() => {
+        if (isGpsLocked && !hasInitialGpsAutoSwitch) {
+            setFlightMode("LOITER");
+            setHasInitialGpsAutoSwitch(true);
+        } else if (!isGpsLocked) {
+            setFlightMode("ALT_HOLD");
+            setHasInitialGpsAutoSwitch(false);
+        }
+    }, [isGpsLocked, hasInitialGpsAutoSwitch]);
 
     // YOUR REQUESTED DEFAULT COORDS
     const lat = gpsData.lat ? Number(gpsData.lat) : 31.787396049566723;
@@ -107,7 +125,7 @@ export const MessagetestPage = () => {
         return "text-emerald-500";
     };
 
-    const mapTiles = isDarkMode 
+    const mapTiles = isDarkMode
         ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
@@ -126,16 +144,76 @@ export const MessagetestPage = () => {
         return () => { socket.off("message"); socket.off("telemetryMessage"); };
     }, [socket, primaryLink]);
 
+    // --- CONNECTION WATCHDOG ---
+    useEffect(() => {
+        const checkConnection = setInterval(() => {
+            // If it's been more than 2 seconds since last telemetry, set offline
+            if (Date.now() - lastTelTime.current > 2000) {
+                setDroneOnline(false);
+            } else {
+                setDroneOnline(true);
+            }
+        }, 1000);
+        return () => clearInterval(checkConnection);
+    }, []);
+
+    // Socket Emit Code
     useEffect(() => {
         if (!socket) return;
         let interval = setInterval(() => {
-            lastEmitTime.current = Date.now();
             const combined = new Set([...Array.from(activeKeys.current), ...Array.from(leftJoyDirs.current), ...Array.from(rightJoyDirs.current)]);
-            socket.emit("user-message", { commands: Array.from(combined), altitude });
+            socket.emit("user-message", {
+                commands: Array.from(combined),
+                speed: speed,
+                flight_mode: flightMode,
+                altitude: altitude
+            });
             setVisualCommands(Array.from(combined));
-        }, 100);
+        }, 20);
         return () => clearInterval(interval);
-    }, [socket, altitude]);
+    }, [socket, speed, flightMode, altitude]);
+
+    const ModeSlider = () => {
+        const modes = ["ALT_HOLD", "LOITER", "GUIDED"];
+        const currentIndex = modes.indexOf(flightMode);
+
+        const getModeColor = () => {
+            if (flightMode === "ALT_HOLD") return "bg-orange-500 shadow-orange-500/50";
+            if (flightMode === "LOITER") return "bg-purple-500 shadow-purple-500/50";
+            return "bg-emerald-500 shadow-emerald-500/50";
+        };
+
+        const handleModeChange = (newMode) => {
+            // Rules enforcement
+            if (!isGpsLocked && newMode !== "ALT_HOLD") return; // Block switch if no GPS
+            if (isGpsLocked && newMode === "ALT_HOLD") return; // Block Alt_Hold if GPS found
+            setFlightMode(newMode);
+        };
+
+        return (
+            <div className="flex flex-col items-center mt-2 pointer-events-auto">
+                <div className="relative w-40 h-8 flex items-center">
+                    {/* The Thick Track */}
+                    <div className={`absolute w-full h-2 rounded-full transition-colors duration-500 ${getModeColor()} opacity-20`} />
+                    <div className={`absolute h-2 rounded-full transition-all duration-500 ${getModeColor()}`} style={{ width: `${(currentIndex / 2) * 100}%`, left: 0 }} />
+
+                    {/* The 3 Stage Points */}
+                    <div className="absolute w-full flex justify-between px-1">
+                        {modes.map((m) => (
+                            <button
+                                key={m}
+                                onClick={() => handleModeChange(m)}
+                                className={`size-4 rounded-full border-2 border-white/20 z-10 transition-all ${flightMode === m ? getModeColor() : 'bg-black/60'}`}
+                            />
+                        ))}
+                    </div>
+                </div>
+                <span className={`text-[8px] font-black uppercase mt-1 tracking-tighter transition-colors ${getModeColor().replace('bg-', 'text-')}`}>
+                    {flightMode.replace('_', ' ')}
+                </span>
+            </div>
+        );
+    };
 
     const handleStartConsole = async () => {
         try {
@@ -161,56 +239,73 @@ export const MessagetestPage = () => {
                         <p className="text-gray-500 text-[10px] mt-2 uppercase tracking-widest">Autonomous Delivery Interface</p>
                     </div>
 
-                    <button 
+                    <button
                         onClick={handleStartConsole}
                         className="group relative px-12 py-4 bg-emerald-600/20 border-2 border-emerald-500 rounded-full text-emerald-400 font-black tracking-widest overflow-hidden transition-all hover:bg-emerald-500 hover:text-black active:scale-95"
                     >
-                        <span className="relative z-10 flex items-center gap-2">LAUNCH SYSTEM <ArrowRight size={20}/></span>
+                        <span className="relative z-10 flex items-center gap-2">LAUNCH SYSTEM <ArrowRight size={20} /></span>
                         <div className="absolute inset-0 bg-emerald-500 -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
                     </button>
                 </div>
             )}
 
             {/* LAYER 0: FPV BACKGROUND */}
-            <div className="absolute inset-0 z-0 bg-[#050a05] flex items-center justify-center">
-                {primaryLink ? (
-                    <iframe src={primaryLink} className="w-full h-full border-none opacity-90 block" allow="autoplay; fullscreen" />
-                ) : (
-                    <div className="relative flex flex-col items-center justify-center">
-                        <div className="absolute size-48 border-2 border-emerald-500/10 rounded-full animate-ping" />
-                        <div className="absolute size-32 border-2 border-emerald-500/20 rounded-full animate-ping [animation-delay:0.5s]" />
-                        <div className="relative size-10 bg-emerald-500/20 rounded-full border border-emerald-500/50 shadow-[0_0_20px_#10b98133] flex items-center justify-center">
-                            <div className="size-3 bg-emerald-500 rounded-full animate-pulse" />
-                        </div>
-                        <div className="mt-56 text-center">
-                            <p className="text-emerald-400 font-mono text-[11px] tracking-[0.4em] uppercase animate-pulse">Establishing FPV Link</p>
-                        </div>
+            <div className="relative flex flex-col items-center justify-center">
+                {/* ... Radar Rings ... */}
+                <div className="relative size-10 bg-emerald-500/20 ...">
+                    <div className="size-3 bg-emerald-500 rounded-full animate-pulse" />
+                </div>
+
+                {/* CHANGE: Removed 'absolute' and 'top', used 'mt-32' to space it from the center core */}
+                <div className="mt-32 w-64 text-center z-20">
+                    <p className="text-emerald-400 font-mono text-[10px] lg:text-xs tracking-[0.3em] uppercase animate-pulse">
+                        Waiting for FPV feed
+                    </p>
+                    <div className="flex justify-center gap-1 mt-1">
+                        <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                        <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                        <span className="size-1 bg-emerald-500 rounded-full animate-bounce" />
                     </div>
-                )}
-                <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_200px_rgba(0,0,0,0.9)]" />
+                </div>
             </div>
 
-            {/* TOP LEFT: TELEMETRY (LARGER) */}
-            <div className="absolute top-14 lg:top-16 left-4 z-30 flex flex-col gap-1 text-[11px] lg:text-[14px] font-mono text-emerald-400 pointer-events-none bg-black/40 p-4 rounded-xl border border-white/10 backdrop-blur-md shadow-2xl">
-                <div className="flex items-center gap-2 mb-1 border-b border-emerald-500/20 pb-2 text-blue-400">
+            {/* TELEMETRY HUD (FPS STYLE) */}
+            <div className="absolute top-14 lg:top-16 left-4 z-30 flex flex-col gap-0.5 text-[9px] lg:text-[12px] font-mono text-emerald-400 pointer-events-none bg-black/40 p-2 lg:p-3 rounded-lg border border-white/10 backdrop-blur-sm shadow-xl">
+                <div className="flex items-center gap-1.5 mb-0.5 border-b border-emerald-500/20 pb-1 text-blue-400">
                     <Signal size={16} />
-                    <span className="font-bold uppercase tracking-widest text-xs">Link: {ping}ms</span>
+                    {/* Increased text size to text-sm (mobile) and text-lg (desktop) */}
+                    <span className="font-black tracking-tighter text-sm">Ping: {ping} ms</span>
                 </div>
-                <p>LAT: {gpsData.lat?.toFixed(6) || "---"}</p>
-                <p>LON: {gpsData.lon?.toFixed(6) || "---"}</p>
-                <p className="text-blue-400 font-bold">ALT: {gpsData.alt?.toFixed(1) || "0.0"}M</p>
-                <p>SPD: {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
+                <p><span className="opacity-40">Lat:</span> {gpsData.lat?.toFixed(6) || "---"}</p>
+                <p><span className="opacity-40">Lon:</span> {gpsData.lon?.toFixed(6) || "---"}</p>
+                <p><span className="opacity-40">Sats:</span> {gpsData.sats || 0}</p>
+                <p className="text-blue-400"><span className="opacity-40 uppercase">Alt:</span> {gpsData.alt?.toFixed(1) || "0.0"}M</p>
+                <p><span className="opacity-40">Spd:</span> {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
             </div>
 
             {/* UI HUD OVERLAY */}
             <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
                 <header className="w-full py-1 lg:py-2 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto">
                     <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow">Panda Console</h1>
-                    <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-xs lg:text-lg uppercase ${satCount === 0 ? 'text-red-500' : satCount <= 3 ? 'text-purple-500 animate-pulse' : 'text-emerald-500'}`}>
-                        <Satellite size={isMobile ? 12 : 18} /> {satCount} Satellites
+
+                    {/* Satellite color changes based on online status */}
+                    <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-xs lg:text-lg uppercase ${!droneOnline ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
+                        <Satellite size={isMobile ? 12 : 18} /> {droneOnline ? satCount : 0} Satellites
                     </div>
-                    <div className="absolute right-4 top-4 size-3 rounded-full shadow-lg" style={{ backgroundColor: isArmedFromTel ? '#10b981' : '#dc2626' }} />
+
+                    {/* THE STATUS LIGHT: Green if droneOnline is true, Red otherwise */}
+                    <div className="absolute right-4 top-4 size-4 rounded-full shadow-lg transition-all duration-500"
+                        style={{
+                            backgroundColor: droneOnline ? '#10b981' : '#dc2626',
+                            boxShadow: droneOnline ? '0 0 15px #10b981' : '0 0 15px #dc2626'
+                        }}
+                    />
                 </header>
+                {/* --- MODE SLIDER PLACEMENT --- */}
+                <div className='flex flex-col items-center'>
+                    <ModeSlider />
+                    {!isGpsLocked && <span className="text-[10px] text-red-500 font-bold mt-1">GPS REQUIRED FOR LOITER/GUIDED MODE</span>}
+                </div>
 
                 {/* ALTITUDE SIDEBAR */}
                 <div className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 lg:gap-2 z-50 pointer-events-auto">
@@ -223,7 +318,7 @@ export const MessagetestPage = () => {
                 </div>
 
                 <main className="flex-1 w-full flex flex-row items-end justify-between px-2 pb-2 lg:px-12 lg:pb-12">
-                    
+
                     {/* LEFT SECTION (JOYSTICK + TAKEOFF) */}
                     <div className="flex-1 flex items-center justify-start gap-12 lg:gap-20 pointer-events-auto">
                         <div className="flex flex-col items-center">
@@ -235,24 +330,69 @@ export const MessagetestPage = () => {
                                 leftJoyDirs.current = d;
                             }} />
                         </div>
-                        
-                        <button onClick={handleTakeoff5m} className="size-20 lg:size-24 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-lg active:scale-90 transition-all hover:bg-emerald-500 hover:text-black">
-                            <Rocket className="size-6 lg:size-8" />
-                            <span className="text-[8px] lg:text-[10px] font-black">FLY 5M</span>
+
+                        <button
+                            onClick={handleTakeoff5m}
+                            className="size-12 lg:size-22 ml-28 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-90 transition-all hover:bg-emerald-500 hover:text-black group"
+                        >
+                            <Rocket className="size-5 lg:size-8 group-hover:animate-bounce" />
+                            <span className="text-[6.5px] lg:text-[15px] font-black leading-none mt-1 text-center">Fly 5m</span>
                         </button>
+
                     </div>
 
                     {/* CENTER HUD & SLIDER */}
                     <div className="flex-1 flex flex-row items-end justify-center gap-3 lg:gap-10 mb-2 pointer-events-auto">
                         <div className="flex flex-col gap-2 w-28 lg:w-80 justify-end">
+                            <div className='flex flex-col items-center w-full px-2 mb-4 pointer-events-auto'>
+                                {/* Label Row */}
+                                <div className="flex justify-between w-full px-1 mb-1">
+                                    <span className="text-[8px] lg:text-[10px] text-orange-400 font-black uppercase tracking-widest">Velocity Limit</span>
+                                    <span className="text-[10px] lg:text-[12px] text-orange-400 font-mono font-bold">{speed}%</span>
+                                </div>
+
+                                {/* Slider Container (Exact copy of Altitude design) */}
+                                <div className="relative w-full h-6 lg:h-8 bg-black/60 border border-orange-500/30 rounded-full p-0.5 overflow-hidden shadow-2xl flex items-center">
+
+                                    {/* 1. The Actual Input (Invisible Overlay) */}
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="5"
+                                        value={speed}
+                                        onChange={(e) => setSpeed(parseInt(e.target.value))}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-10"
+                                        style={{
+                                            WebkitAppearance: 'none',
+                                            appearance: 'none',
+                                            width: '100%',
+                                            height: '100%'
+                                        }}
+                                    />
+
+                                    {/* 2. Visual Progress Fill (Orange Gradient) */}
+                                    <div
+                                        className="h-full bg-gradient-to-r from-orange-700 to-orange-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                                        style={{
+                                            width: `${speed}%` // Simple 0-100 math
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Sub-label */}
+                                <p className="text-[7px] lg:text-[8px] text-orange-500 uppercase font-black mt-2">Sensitivity Control</p>
+                            </div>
                             <div className='bg-black/80 backdrop-blur-lg border border-emerald-500/20 p-1.5 lg:p-2 rounded-xl shadow-2xl w-full text-center'>
-                                <p className={`text-[8px] lg:text-[11px] font-black uppercase ${isArmedFromTel ? "text-emerald-400" : "text-red-500"}`}>
-                                    {tel?.status_msg || "OFFLINE"}
+                                {/* Label shows Python's status_msg if online, otherwise "OFFLINE" */}
+                                <p className={`text-xs lg:text-sm font-black uppercase ${droneOnline ? "text-emerald-400" : "text-red-500"}`}>
+                                    {droneOnline ? (tel?.status_msg || "LINKED") : "OFFLINE"}
                                 </p>
+
                                 <div className="grid grid-cols-3 text-center text-[#2dd4bf] font-mono text-[7px] lg:text-[13px] border-t border-white/5 mt-1 pt-1">
-                                    <div><p className="text-gray-500 text-[5px]">X</p>{lat.toFixed(1)}</div>
-                                    <div><p className="text-gray-500 text-[5px]">Y</p>{lon.toFixed(1)}</div>
-                                    <div><p className="text-gray-500 text-[5px]">θ</p>{tel?.theta?.toFixed(1) || "0.0"}</div>
+                                    <div><p className="text-gray-500 text-[15px]">X</p>{droneOnline ? lat.toFixed(1) : "0.0"}</div>
+                                    <div><p className="text-gray-500 text-[15px]">Y</p>{droneOnline ? lon.toFixed(1) : "0.0"}</div>
+                                    <div><p className="text-gray-500 text-[15px]">θ</p>{droneOnline ? (tel?.theta?.toFixed(1) || "0.0") : "0.0"}</div>
                                 </div>
                             </div>
                             <button onClick={handleForceDisarm} className="w-full py-1.5 bg-red-600/20 border border-red-500/40 rounded-lg text-red-500 font-black text-[8px] lg:text-[10px] uppercase active:scale-95 shadow-xl">FORCE KILL</button>
@@ -260,27 +400,75 @@ export const MessagetestPage = () => {
 
                         {/* SLIDER BLOCK */}
                         <div ref={sliderRef} style={{ touchAction: 'none' }}
-                            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setIsDraggingSlider(true); hasTriggeredAction.current = false; }}
+                            onPointerDown={(e) => {
+                                e.currentTarget.setPointerCapture(e.pointerId);
+                                setIsDraggingSlider(true);
+                                hasTriggeredAction.current = false;
+                            }}
                             onPointerMove={(e) => {
                                 if (!isDraggingSlider || !sliderRef.current) return;
                                 const rect = sliderRef.current.getBoundingClientRect();
-                                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                                // SUPPORT: Fixes coordinate detection for both PC and Mobile
+                                const clientY = e.nativeEvent.clientY || e.clientY;
                                 let dy = clientY - (rect.top + rect.height / 2);
+
                                 const maxRange = rect.height / 2 - 10;
-                                dy = Math.max(-maxRange, Math.min(maxRange, dy)); setYPos(dy);
+                                dy = Math.max(-maxRange, Math.min(maxRange, dy));
+                                setYPos(dy);
+
+                                const threshold = maxRange * 0.7;
                                 if (!hasTriggeredAction.current) {
-                                    if (dy < -maxRange * 0.8) { socket?.emit('user-message', { commands: ["arm"], altitude }); hasTriggeredAction.current = true; }
-                                    else if (dy > maxRange * 0.8) { socket?.emit('user-message', { commands: ["land"], altitude }); hasTriggeredAction.current = true; }
+                                    if (dy <= -threshold) {
+                                        // ADD TO activeKeys so the 10Hz loop sends it multiple times for reliability
+                                        activeKeys.current.add("arm");
+                                        if (navigator.vibrate) navigator.vibrate(50);
+                                        hasTriggeredAction.current = true;
+                                        // Automatically remove it after 500ms so it doesn't stay stuck
+                                        setTimeout(() => activeKeys.current.delete("arm"), 500);
+                                    } else if (dy >= threshold) {
+                                        activeKeys.current.add("land");
+                                        if (navigator.vibrate) navigator.vibrate(50);
+                                        hasTriggeredAction.current = true;
+                                        setTimeout(() => activeKeys.current.delete("land"), 500);
+                                    }
                                 }
                             }}
-                            onPointerUp={() => { setIsDraggingSlider(false); setYPos(0); }}
-                            className="relative w-10 lg:w-14 h-32 lg:h-56 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl"
+                            onPointerUp={() => {
+                                setIsDraggingSlider(false);
+                                setYPos(0);
+                                hasTriggeredAction.current = false; // FIX: Reset the lock so you can swipe again
+                            }}
+                            onPointerCancel={() => {
+                                setIsDraggingSlider(false);
+                                setYPos(0);
+                                hasTriggeredAction.current = false;
+                            }}
+                            className="relative w-10 lg:w-14 h-32 lg:h-56 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible"
                         >
                             <div className="absolute top-2 text-[5px] lg:text-[7px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
                             <div className="absolute bottom-2 text-[5px] lg:text-[7px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
-                            <div className={`absolute w-8 h-8 lg:w-12 lg:h-12 flex items-center justify-center transition-all animate-pulse ${(isArmedFromTel || yPos < -15) ? "bg-emerald-500 rounded-md" : (yPos > 15) ? "bg-orange-500 rounded-full" : "bg-purple-600"}`}
-                                style={{ transform: `translateY(${yPos}px)`, clipPath: (isArmedFromTel || yPos < -15 || yPos > 15) ? "none" : "polygon(50% 0%, 0% 100%, 100% 100%)" }}>
-                                {(isArmedFromTel || yPos < -15) ? <Power size={14} /> : (yPos > 15) ? <ArrowDownToLine size={14} /> : <Circle size={6} fill="white" />}
+                            <div className="w-full h-0.5 bg-white/10 absolute" />
+
+                            {/* --- FANCY DYNAMIC HANDLE --- */}
+                            <div
+                                className={`absolute w-8 h-8 lg:w-12 lg:h-12 flex items-center justify-center shadow-2xl transition-all duration-150 animate-pulse
+            ${(isArmedFromTel || yPos < -20)
+                                        ? "bg-emerald-500 rounded-md shadow-[0_0_20px_#10b981]" // Green Rectangle
+                                        : (yPos > 20)
+                                            ? "bg-orange-500 rounded-full shadow-[0_0_20px_#f97316]" // Orange Circle
+                                            : "bg-purple-600 shadow-[0_0_20px_#9333ea]" // Purple Triangle (Shape below)
+                                    }`}
+                                style={{
+                                    transform: `translateY(${yPos}px)`,
+                                    clipPath: (isArmedFromTel || yPos < -20 || yPos > 20)
+                                        ? "none"
+                                        : "polygon(50% 0%, 0% 100%, 100% 100%)"
+                                }}
+                            >
+                                {(isArmedFromTel || yPos < -20) ? <Power size={14} className="text-black" /> :
+                                    (yPos > 20) ? <ArrowDownToLine size={14} className="text-black" /> :
+                                        <Circle size={6} className="text-white mt-1" fill="white" />}
                             </div>
                         </div>
                     </div>
@@ -301,13 +489,16 @@ export const MessagetestPage = () => {
             {/* MAP OVERLAY (TOP RIGHT) */}
             <div onClick={() => !isMapExpanded && setIsExpanded(true)}
                 className={`transition-all duration-500 z-[100] border-2 border-emerald-500/30 overflow-hidden 
-                ${isMapExpanded ? 'absolute top-0 right-0 w-1/2 h-screen border-l bg-black shadow-[-20px_0_30px_rgba(0,0,0,0.5)] pointer-events-auto' : 'absolute top-4 right-4 w-24 h-24 lg:w-32 lg:h-32 rounded-2xl'}`}>
+    ${isMapExpanded
+                        ? 'absolute top-0 right-0 w-1/2 h-screen border-l bg-black shadow-[-20px_0_30px_rgba(0,0,0,0.5)]'
+                        : 'absolute top-4 right-10 w-25 h-25 lg:w-28 lg:h-28 rounded-2xl shadow-xl cursor-pointer hover:border-emerald-400'
+                    }`}>
                 <div className="absolute top-3 left-3 flex flex-col gap-2 z-[1001]">
                     <button onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }} className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-emerald-400">
                         {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
                     </button>
                 </div>
-                {isMapExpanded && <button onClick={(e) => {e.stopPropagation(); setIsExpanded(false);}} className="absolute top-3 right-3 z-[1001] bg-red-600 p-2 rounded-lg text-white shadow-lg pointer-events-auto"><X size={20}/></button>}
+                {isMapExpanded && <button onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} className="absolute top-3 right-3 z-[1001] bg-red-600 p-2 rounded-lg text-white shadow-lg pointer-events-auto"><X size={20} /></button>}
                 <MapContainer center={position} zoom={16} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
                     <TileLayer url={mapTiles} />
                     <Marker position={position} key={`${lat}-${lon}`} />
@@ -316,7 +507,8 @@ export const MessagetestPage = () => {
                 </MapContainer>
             </div>
 
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 .green-glow { text-shadow: 0 0 10px rgba(45, 212, 191, 0.6); } 
                 .vertical-text { writing-mode: vertical-rl; }
                 input[type=range] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; }
