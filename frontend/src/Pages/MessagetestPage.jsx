@@ -131,41 +131,49 @@ export const MessagetestPage = () => {
     useEffect(() => {
         if (!socket) return;
 
-        socket.on("message", (data) => {
-            setGotTheMessage(data);
-        });
+        // Verify connection
+        socket.on("connect", () => console.log("Web Connected to Server"));
 
-        socket.on("telemetryMessage", (data) => {
-            // data should now look like { theTelMessage: { ... } }
+        // Listen for Drone Telemetry
+        const handleTel = (data) => {
+            console.log("Telemetry Received:", data); // Debugging
             setGotTheTelMessage(data);
-
-            // Calculate Ping: Time now minus the last time we sent a command
             setPing(Date.now() - lastEmitTime.current);
+        };
 
-            if (data.theTelMessage?.cam_url && data.theTelMessage.cam_url !== primaryLink) {
-                setPrimaryLink(data.theTelMessage.cam_url);
-            }
-        });
+        socket.on("telemetryMessage", handleTel);
 
         return () => {
-            socket.off("message");
-            socket.off("telemetryMessage");
+            socket.off("telemetryMessage", handleTel);
         };
-    }, [socket, primaryLink]);
+    }, [socket]);
 
     // Socket Emit Code
     useEffect(() => {
-        if (!socket) return;
+        if (!socket || !socket.connected) return;
+
         let interval = setInterval(() => {
-            const combined = new Set([...Array.from(activeKeys.current), ...Array.from(leftJoyDirs.current), ...Array.from(rightJoyDirs.current)]);
-            socket.emit("user-message", {
+            const combined = new Set([
+                ...Array.from(activeKeys.current), 
+                ...Array.from(leftJoyDirs.current), 
+                ...Array.from(rightJoyDirs.current)
+            ]);
+
+            const payload = {
                 commands: Array.from(combined),
                 speed: speed,
                 flight_mode: flightMode,
                 altitude: altitude
-            });
+            };
+
+            // Record time for ping calculation
+            lastEmitTime.current = Date.now();
+            
+            // Emit to Drone
+            socket.emit("user-message", { theMessage: payload });
             setVisualCommands(Array.from(combined));
         }, 100);
+
         return () => clearInterval(interval);
     }, [socket, speed, flightMode, altitude]);
 
