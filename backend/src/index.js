@@ -66,14 +66,12 @@ io.on("connection", async (connectedClient) => {
   });
 
   connectedClient.on("tel-message", (telMessage) => {
-
     const senderName = connectedClient.user?.fullname || "Hardware";
-
+    // Relay to everyone as "telemetryMessage"
     io.emit("telemetryMessage", {
       name: senderName,
-      theTelMessage: telMessage
+      theTelMessage: telMessage // This wraps it for the React state
     });
-
   });
 
 
