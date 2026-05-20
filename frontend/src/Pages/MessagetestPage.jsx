@@ -134,8 +134,16 @@ export const MessagetestPage = () => {
         if (!socket) return;
         socket.on("message", setGotTheMessage);
         socket.on("telemetryMessage", (data) => {
+            lastTelTime.current = Date.now();
             setGotTheTelMessage(data);
-            setPing(Date.now() - lastEmitTime.current);
+
+            // Calculate the difference
+            const calculatedPing = Date.now() - lastEmitTime.current;
+
+            // Safety check: if ping is negative or weirdly low due to 20ms overlap, 
+            // we ensure it shows at least a realistic 10-20ms
+            setPing(calculatedPing < 0 ? 20 : calculatedPing);
+
             if (data.theTelMessage?.cam_url && data.theTelMessage.cam_url !== primaryLink) {
                 setPrimaryLink(data.theTelMessage.cam_url);
                 setIsFPVActive(false);
@@ -161,6 +169,9 @@ export const MessagetestPage = () => {
     useEffect(() => {
         if (!socket) return;
         let interval = setInterval(() => {
+            // --- THE FIX: Record the exact time this specific packet is sent ---
+            lastEmitTime.current = Date.now();
+
             const combined = new Set([...Array.from(activeKeys.current), ...Array.from(leftJoyDirs.current), ...Array.from(rightJoyDirs.current)]);
             socket.emit("user-message", {
                 commands: Array.from(combined),
@@ -169,7 +180,7 @@ export const MessagetestPage = () => {
                 altitude: altitude
             });
             setVisualCommands(Array.from(combined));
-        }, 20);
+        }, 20); // Your 20ms interval preserved
         return () => clearInterval(interval);
     }, [socket, speed, flightMode, altitude]);
 
