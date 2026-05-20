@@ -153,7 +153,7 @@ export const MessagetestPage = () => {
             } else {
                 setDroneOnline(true);
             }
-        }, 1000);
+        }, 20);
         return () => clearInterval(checkConnection);
     }, []);
 
