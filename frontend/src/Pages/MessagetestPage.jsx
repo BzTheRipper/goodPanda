@@ -130,16 +130,27 @@ export const MessagetestPage = () => {
     // --- LOGIC ---
     useEffect(() => {
         if (!socket) return;
-        socket.on("message", setGotTheMessage);
+
+        socket.on("message", (data) => {
+            setGotTheMessage(data);
+        });
+
         socket.on("telemetryMessage", (data) => {
+            // data should now look like { theTelMessage: { ... } }
             setGotTheTelMessage(data);
+
+            // Calculate Ping: Time now minus the last time we sent a command
             setPing(Date.now() - lastEmitTime.current);
+
             if (data.theTelMessage?.cam_url && data.theTelMessage.cam_url !== primaryLink) {
                 setPrimaryLink(data.theTelMessage.cam_url);
-                setIsFPVActive(false);
             }
         });
-        return () => { socket.off("message"); socket.off("telemetryMessage"); };
+
+        return () => {
+            socket.off("message");
+            socket.off("telemetryMessage");
+        };
     }, [socket, primaryLink]);
 
     // Socket Emit Code
