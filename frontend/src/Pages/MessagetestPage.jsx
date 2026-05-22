@@ -161,7 +161,7 @@ export const MessagetestPage = () => {
             } else {
                 setDroneOnline(true);
             }
-        }, 50);
+        }, 20);
         return () => clearInterval(checkConnection);
     }, []);
 
@@ -180,7 +180,7 @@ export const MessagetestPage = () => {
                 altitude: altitude
             });
             setVisualCommands(Array.from(combined));
-        }, 50); // Your 20ms interval preserved
+        }, 100); // Your 20ms interval preserved
         return () => clearInterval(interval);
     }, [socket, speed, flightMode, altitude]);
 
