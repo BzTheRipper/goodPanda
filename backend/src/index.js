@@ -45,7 +45,7 @@ io.on("connection", async (connectedClient) => {
     try {
       const user = await User.findById(userId);
       if (user) {
-        console.log(`✅ User ${user.fullname} connected`);
+        //console.log(`✅ User ${user.fullname} connected`);
         connectedClient.user = user;
       }
       else {
