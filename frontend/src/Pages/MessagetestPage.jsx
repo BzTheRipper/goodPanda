@@ -102,6 +102,16 @@ export const MessagetestPage = () => {
     const gpsData = tel?.gps_raw || {};
     const satCount = gpsData.sats || 0;
     const isGpsLocked = gpsData.fix_type >= 3;
+    const getGpsStatus = () => {
+        const fix = gpsData.fix_type;
+        const sats = gpsData.sats || 0;
+
+        if (!fix || fix === 0) return { text: "No GPS", color: "text-red-600" };
+        if (fix === 1 || sats === 0) return { text: "No Fix", color: "text-blue-500" };
+        return { text: "OK", color: "text-emerald-500" };
+    };
+
+    const gpsStatus = getGpsStatus();
 
     // --- AUTO-SWITCH LOGIC ---
     useEffect(() => {
@@ -292,6 +302,7 @@ export const MessagetestPage = () => {
                 <p><span className="opacity-40">Sats:</span> {gpsData.sats || 0}</p>
                 <p className="text-blue-400"><span className="opacity-40 uppercase">Alt:</span> {gpsData.alt?.toFixed(1) || "0.0"}M</p>
                 <p><span className="opacity-40">Spd:</span> {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
+                <p className={`${gpsStatus.color} font-black`}><span className="opacity-40 text-emerald-400 font-mono font-normal">GPS:</span> {gpsStatus.text}</p>
             </div>
 
             {/* UI HUD OVERLAY */}
