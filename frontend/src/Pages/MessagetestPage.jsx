@@ -216,7 +216,7 @@ export const MessagetestPage = () => {
                 altitude: altitude
             });
             setVisualCommands(Array.from(combined));
-        }, 100); // Your 20ms interval preserved
+        }, 100); // Your 100ms interval preserved
         return () => clearInterval(interval);
     }, [socket, speed, flightMode, altitude]);
 
@@ -418,7 +418,7 @@ export const MessagetestPage = () => {
 
                     {/* LEFT SECTION (JOYSTICK + TAKEOFF) */}
                     <div className="flex-1 flex items-center justify-start gap-12 lg:gap-20 pointer-events-auto">
-                         <div className="flex flex-col items-center ml-4 mb-2 lg:ml-10 lg:mb-6">
+                        <div className="flex flex-col items-center ml-4 mb-2 lg:ml-10 lg:mb-6">
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Movement</p>
                             <Joystick onMove={(dx, dy, r) => {
                                 const t = r * 0.3; const d = new Set();
@@ -524,10 +524,18 @@ export const MessagetestPage = () => {
                                         // Automatically remove it after 500ms so it doesn't stay stuck
                                         setTimeout(() => activeKeys.current.delete("arm"), 500);
                                     } else if (dy >= threshold) {
+                                        // FIX: Clear the "arm" command if we are trying to land to prevent a conflict
+                                        activeKeys.current.delete("arm");
                                         activeKeys.current.add("land");
+
                                         if (navigator.vibrate) navigator.vibrate(50);
                                         hasTriggeredAction.current = true;
-                                        setTimeout(() => activeKeys.current.delete("land"), 500);
+
+                                        // IMPORTANT: Clear the land command quickly so Python doesn't get stuck in a loop
+                                        setTimeout(() => {
+                                            activeKeys.current.delete("land");
+                                            hasTriggeredAction.current = false; // Reset lock so you can swipe again
+                                        }, 500);
                                     }
                                 }
                             }}
