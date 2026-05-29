@@ -55,10 +55,10 @@ const Joystick = memo(({ onMove }) => {
 
     return (
         <div className="relative flex flex-col items-center pointer-events-auto">
-            <div ref={baseRef} className="w-24 h-24 lg:w-40 lg:h-40 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center backdrop-blur-sm touch-none"
+            <div ref={baseRef} className="w-32 h-32 lg:w-56 lg:h-56 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center backdrop-blur-sm touch-none"
                 onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setIsInteracting(true); }}
                 onPointerMove={handleMove} onPointerUp={() => { setIsInteracting(false); stickRef.current.style.transform = 'translate(0px, 0px)'; onMove(0, 0, 1); }}>
-                <div ref={stickRef} className="w-8 h-8 lg:w-14 lg:h-14 rounded-full bg-[#2dd4bf] shadow-2xl pointer-events-none" />
+                <div ref={stickRef} className="w-12 h-12 lg:w-20 lg:h-20 rounded-full bg-[#2dd4bf] shadow-2xl pointer-events-none" />
             </div>
         </div>
     );
@@ -297,22 +297,21 @@ export const MessagetestPage = () => {
             )}
 
             {/* LAYER 0: FPV BACKGROUND */}
-            <div className="relative flex flex-col items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 {/* ... Radar Rings ... */}
-                <div className="relative size-10 bg-emerald-500/20 ...">
-                    <div className="size-3 bg-emerald-500 rounded-full animate-pulse" />
-                </div>
 
-                {/* CHANGE: Removed 'absolute' and 'top', used 'mt-32' to space it from the center core */}
-                <div className="mt-32 w-64 text-center z-20">
+                {/* CHANGE: Changed mt-32 to absolute positioning */}
+                <div className="absolute top-[40%] left-1/2 -translate-x-1/2 text-center z-20 w-full">
                     <p className="text-emerald-400 font-mono text-[10px] lg:text-xs tracking-[0.3em] uppercase animate-pulse">
-                        Waiting for FPV feed
+                        {droneOnline ? "Receiving Data Stream" : "Searching for Drone"}
                     </p>
-                    <div className="flex justify-center gap-1 mt-1">
-                        <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <span className="size-1 bg-emerald-500 rounded-full animate-bounce" />
-                    </div>
+                    {!droneOnline && (
+                        <div className="flex justify-center gap-1 mt-1">
+                            <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                            <span className="size-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                            <span className="size-1 bg-emerald-500 rounded-full animate-bounce" />
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -419,7 +418,7 @@ export const MessagetestPage = () => {
 
                     {/* LEFT SECTION (JOYSTICK + TAKEOFF) */}
                     <div className="flex-1 flex items-center justify-start gap-12 lg:gap-20 pointer-events-auto">
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center ml-8 mb-10 lg:ml-16 lg:mb-16">
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Movement</p>
                             <Joystick onMove={(dx, dy, r) => {
                                 const t = r * 0.3; const d = new Set();
@@ -441,7 +440,7 @@ export const MessagetestPage = () => {
 
                     {/* CENTER HUD & SLIDER */}
                     <div className="flex-1 flex flex-row items-end justify-center gap-3 lg:gap-10 mb-2 pointer-events-auto">
-                        <div className="flex flex-col gap-2 w-28 lg:w-80 justify-end">
+                        <div className="flex flex-col gap-2 w-50 lg:w-80 justify-end">
                             <div className='flex flex-col items-center w-full px-2 mb-4 pointer-events-auto'>
                                 {/* Label Row */}
                                 <div className="flex justify-between w-full px-1 mb-1">
@@ -572,7 +571,7 @@ export const MessagetestPage = () => {
                     </div>
 
                     <div className="flex-1 flex justify-end pr-12 lg:pr-0 pointer-events-auto">
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center mr-10 mb-10 lg:mr-22 lg:mb-16">
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Yaw / Rotate</p>
                             <Joystick onMove={(dx, dy, r) => {
                                 const t = r * 0.3; const d = new Set();
