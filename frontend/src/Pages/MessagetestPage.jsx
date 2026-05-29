@@ -119,10 +119,17 @@ export const MessagetestPage = () => {
 
     useEffect(() => {
         if (!socket) return;
-        socket.on("pixhawk-feedback", (data) => {
-            setMavLogs((prev) => [...prev.slice(-10), data.text]); // Keep last 10 messages
-        });
-        return () => socket.off("pixhawk-feedback");
+
+        const handleMavLog = (data) => {
+            setMavLogs((prev) => {
+                // Keep the last 50 messages so the user can scroll back
+                const newLogs = [...prev, data.text];
+                return newLogs.slice(-50);
+            });
+        };
+
+        socket.on("pixhawk-feedback", handleMavLog);
+        return () => socket.off("pixhawk-feedback", handleMavLog);
     }, [socket]);
 
     // Auto-scroll terminal to bottom when new logs arrive
