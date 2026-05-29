@@ -74,6 +74,11 @@ io.on("connection", async (connectedClient) => {
     });
   });
 
+  connectedClient.on("mav-log", (data) => {
+    // Relay the Pixhawk internal message to the Pilot's Web UI
+    io.emit("pixhawk-feedback", data); 
+  });
+
 
   connectedClient.on("disconnect", () => {
     if (userId) delete userConnectedClientMap[userId];

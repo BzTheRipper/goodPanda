@@ -86,6 +86,9 @@ export const MessagetestPage = () => {
     const [speed, setSpeed] = useState(20);
     const [droneOnline, setDroneOnline] = useState(false);
     const lastTelTime = useRef(Date.now()); // Tracks when the last telemetry packet arrived
+    const [mavLogs, setMavLogs] = useState([]);
+    const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+
 
     // --- REFS ---
     const sliderRef = useRef(null);
@@ -95,6 +98,7 @@ export const MessagetestPage = () => {
     const rightJoyDirs = useRef(new Set());
     const [yPos, setYPos] = useState(0);
     const lastEmitTime = useRef(Date.now());
+    const logEndRef = useRef(null);
 
     // --- DATA CALCULATIONS ---
     const tel = gotTheTelMessage?.theTelMessage;
@@ -112,6 +116,21 @@ export const MessagetestPage = () => {
     };
 
     const gpsStatus = getGpsStatus();
+
+    useEffect(() => {
+        if (!socket) return;
+        socket.on("pixhawk-feedback", (data) => {
+            setMavLogs((prev) => [...prev.slice(-10), data.text]); // Keep last 10 messages
+        });
+        return () => socket.off("pixhawk-feedback");
+    }, [socket]);
+
+    // Auto-scroll terminal to bottom when new logs arrive
+    useEffect(() => {
+        if (isTerminalOpen) {
+            logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [mavLogs, isTerminalOpen]);
 
     // --- AUTO-SWITCH LOGIC ---
     useEffect(() => {
@@ -303,6 +322,56 @@ export const MessagetestPage = () => {
                 <p className="text-blue-400"><span className="opacity-40 uppercase">Alt:</span> {gpsData.alt?.toFixed(1) || "0.0"}M</p>
                 <p><span className="opacity-40">Spd:</span> {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
                 <p className={`${gpsStatus.color} font-black`}><span className="opacity-40 text-emerald-400 font-mono font-normal">GPS:</span> {gpsStatus.text}</p>
+            </div>
+
+            {/* --- SIDE TERMINAL DRAWER --- */}
+            <div
+                className={`fixed left-0 top-1/2 -translate-y-1/2 z-[100] flex items-center transition-all duration-500 ease-in-out ${isTerminalOpen ? "translate-x-0" : "-translate-x-64"
+                    }`}
+            >
+                {/* THE TERMINAL BOX */}
+                <div className="w-64 h-72 bg-black/90 backdrop-blur-xl border border-white/10 rounded-r-2xl shadow-[20px_0_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
+                    {/* Terminal Header */}
+                    <div className="bg-white/5 px-3 py-2 border-b border-white/10 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <div className="size-2 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-[10px] font-black text-emerald-500 tracking-widest uppercase">Mavlink Console</span>
+                        </div>
+                        <span className="text-[8px] text-gray-500 font-mono">v4.6.3</span>
+                    </div>
+
+                    {/* Log Content */}
+                    <div className="flex-1 overflow-y-auto p-3 font-mono text-[9px] leading-relaxed space-y-1.5 scrollbar-hide">
+                        {mavLogs.length === 0 ? (
+                            <p className="text-gray-700 italic">Waiting for telemetry heartbeat...</p>
+                        ) : (
+                            mavLogs.map((log, i) => (
+                                <div key={i} className="flex gap-2 border-l border-white/5 pl-2">
+                                    <span className="text-emerald-900 select-none">root@drone:~#</span>
+                                    <span className={
+                                        log.includes("REJECTED") || log.includes("FAILED") || log.includes("Loss")
+                                            ? "text-red-400"
+                                            : "text-emerald-400"
+                                    }>
+                                        {log}
+                                    </span>
+                                </div>
+                            ))
+                        )}
+                        <div ref={logEndRef} />
+                    </div>
+                </div>
+
+                {/* THE TOGGLE BUTTON (Attached to the side of the box) */}
+                <button
+                    onClick={() => setIsTerminalOpen(!isTerminalOpen)}
+                    className="bg-emerald-500/10 hover:bg-emerald-500/20 backdrop-blur-md border-y border-r border-emerald-500/30 p-2 rounded-r-xl text-emerald-500 transition-all group pointer-events-auto"
+                >
+                    <ArrowRight
+                        size={18}
+                        className={`transition-transform duration-500 ${isTerminalOpen ? "rotate-180" : "rotate-0"}`}
+                    />
+                </button>
             </div>
 
             {/* UI HUD OVERLAY */}
