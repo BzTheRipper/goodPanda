@@ -418,7 +418,7 @@ export const MessagetestPage = () => {
 
                     {/* LEFT SECTION (JOYSTICK + TAKEOFF) */}
                     <div className="flex-1 flex items-center justify-start gap-12 lg:gap-20 pointer-events-auto">
-                        <div className="flex flex-col items-center ml-8 mb-10 lg:ml-16 lg:mb-16">
+                        <div className="flex flex-col items-center ml-8 mb-2 lg:ml-16 lg:mb-6"> 
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Movement</p>
                             <Joystick onMove={(dx, dy, r) => {
                                 const t = r * 0.3; const d = new Set();
@@ -440,8 +440,8 @@ export const MessagetestPage = () => {
 
                     {/* CENTER HUD & SLIDER */}
                     <div className="flex-1 flex flex-row items-end justify-center gap-3 lg:gap-10 mb-2 pointer-events-auto">
-                        <div className="flex flex-col gap-2 w-50 lg:w-80 justify-end">
-                            <div className='flex flex-col items-center w-full px-2 mb-4 pointer-events-auto'>
+                        <div className="flex flex-col gap-1 w-50 lg:w-80 justify-end items-center">
+                            <div className='flex flex-col items-center w-full px-2 mb-1 pointer-events-auto'>
                                 {/* Label Row */}
                                 <div className="flex justify-between w-full px-1 mb-1">
                                     <span className="text-[8px] lg:text-[10px] text-orange-400 font-black uppercase tracking-widest">Velocity Limit</span>
@@ -571,7 +571,7 @@ export const MessagetestPage = () => {
                     </div>
 
                     <div className="flex-1 flex justify-end pr-12 lg:pr-0 pointer-events-auto">
-                        <div className="flex flex-col items-center mr-10 mb-10 lg:mr-22 lg:mb-16">
+                        <div className="flex flex-col items-center mr-10 mb-2 lg:mr-22 lg:mb-6">
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Yaw / Rotate</p>
                             <Joystick onMove={(dx, dy, r) => {
                                 const t = r * 0.3; const d = new Set();
