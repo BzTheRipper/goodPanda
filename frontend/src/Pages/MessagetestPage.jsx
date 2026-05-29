@@ -231,12 +231,20 @@ export const MessagetestPage = () => {
         };
 
         const handleModeChange = (newMode) => {
-            // Rules enforcement
-            if (!isGpsLocked && newMode !== "ALT_HOLD") return; // Block switch if no GPS
-            if (isGpsLocked && newMode === "ALT_HOLD") return; // Block Alt_Hold if GPS found
+            // Safety check
+            if (!droneOnline) return;
+            if (!isGpsLocked && newMode !== "ALT_HOLD") return;
+
+            // Send the command once immediately via socket
+            socket.emit("user-message", {
+                commands: [],
+                flight_mode: newMode,
+                altitude: altitude
+            });
+
+            // Then update the UI state
             setFlightMode(newMode);
         };
-
         return (
             <div className="flex flex-col items-center mt-2 pointer-events-auto">
                 <div className="relative w-40 h-8 flex items-center">
