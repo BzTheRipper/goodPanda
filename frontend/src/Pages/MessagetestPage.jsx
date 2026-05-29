@@ -418,7 +418,7 @@ export const MessagetestPage = () => {
 
                     {/* LEFT SECTION (JOYSTICK + TAKEOFF) */}
                     <div className="flex-1 flex items-center justify-start gap-12 lg:gap-20 pointer-events-auto">
-                        <div className="flex flex-col items-center ml-8 mb-2 lg:ml-16 lg:mb-6"> 
+                         <div className="flex flex-col items-center ml-4 mb-2 lg:ml-10 lg:mb-6">
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Movement</p>
                             <Joystick onMove={(dx, dy, r) => {
                                 const t = r * 0.3; const d = new Set();
@@ -430,7 +430,7 @@ export const MessagetestPage = () => {
 
                         <button
                             onClick={handleTakeoff5m}
-                            className="size-12 lg:size-22 ml-28 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-90 transition-all hover:bg-emerald-500 hover:text-black group"
+                            className="size-12 lg:size-22  rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-90 transition-all hover:bg-emerald-500 hover:text-black group"
                         >
                             <Rocket className="size-5 lg:size-8 group-hover:animate-bounce" />
                             <span className="text-[6.5px] lg:text-[15px] font-black leading-none mt-1 text-center">Fly 5m</span>
@@ -439,7 +439,7 @@ export const MessagetestPage = () => {
                     </div>
 
                     {/* CENTER HUD & SLIDER */}
-                    <div className="flex-1 flex flex-row items-end justify-center gap-3 lg:gap-10 mb-2 pointer-events-auto">
+                    <div className="flex-none flex flex-row items-end justify-center gap-2 lg:gap-10 mb-2 pointer-events-auto">
                         <div className="flex flex-col gap-1 w-50 lg:w-80 justify-end items-center">
                             <div className='flex flex-col items-center w-full px-2 mb-1 pointer-events-auto'>
                                 {/* Label Row */}
@@ -570,8 +570,9 @@ export const MessagetestPage = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 flex justify-end pr-12 lg:pr-0 pointer-events-auto">
-                        <div className="flex flex-col items-center mr-10 mb-2 lg:mr-22 lg:mb-6">
+                    {/* RIGHT SECTION (JOYSTICK + TAKEOFF) */}
+                    <div className="flex-1 flex justify-end pr-8 lg:pr-0 pointer-events-auto">
+                        <div className="flex flex-col items-center mr-4 mb-2 lg:mr-10 lg:mb-6">
                             <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Yaw / Rotate</p>
                             <Joystick onMove={(dx, dy, r) => {
                                 const t = r * 0.3; const d = new Set();
