@@ -336,6 +336,19 @@ export const MessagetestPage = () => {
                 <p className="text-blue-400"><span className="opacity-40 uppercase">Alt:</span> {gpsData.alt?.toFixed(1) || "0.0"}M</p>
                 <p><span className="opacity-40">Spd:</span> {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
                 <p className={`${gpsStatus.color} font-black`}><span className="opacity-40 text-emerald-400 font-mono font-normal">GPS:</span> {gpsStatus.text}</p>
+                {/* BATTERY HUD */}
+                <div className="flex items-center gap-2 mt-2 pt-1 border-t border-white/5">
+                    <div className={`px-2 py-0.5 rounded text-[10px] font-black tracking-tighter ${(tel?.battery?.p || 0) < 20 ? 'bg-red-500 animate-pulse text-white' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        }`}>
+                        {tel?.battery?.p || 0}%
+                    </div>
+                    <div className="flex flex-col leading-none">
+                        <span className="text-[7px] opacity-40 uppercase font-bold">Voltage</span>
+                        <span className="text-[10px] font-mono font-bold text-blue-400">
+                            {tel?.battery?.v?.toFixed(1) || "0.0"}V
+                        </span>
+                    </div>
+                </div>
             </div>
 
             {/* --- SIDE TERMINAL DRAWER --- */}
