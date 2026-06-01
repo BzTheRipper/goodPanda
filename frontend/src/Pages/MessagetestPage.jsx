@@ -176,6 +176,10 @@ export const MessagetestPage = () => {
             // Calculate the difference
             const calculatedPing = Date.now() - lastEmitTime.current;
 
+            if (data.theTelMessage?.online) {
+                setDroneOnline(true);
+            }
+
             // Safety check: if ping is negative or weirdly low due to 20ms overlap, 
             // we ensure it shows at least a realistic 10-20ms
             setPing(calculatedPing < 0 ? 20 : calculatedPing);
@@ -194,10 +198,9 @@ export const MessagetestPage = () => {
             // If it's been more than 2 seconds since last telemetry, set offline
             if (Date.now() - lastTelTime.current > 5000) {
                 setDroneOnline(false);
-            } else {
-                setDroneOnline(true);
-            }
-        }, 20);
+            } 
+            
+        }, 500);
         return () => clearInterval(checkConnection);
     }, []);
 
