@@ -192,7 +192,7 @@ export const MessagetestPage = () => {
     useEffect(() => {
         const checkConnection = setInterval(() => {
             // If it's been more than 2 seconds since last telemetry, set offline
-            if (Date.now() - lastTelTime.current > 2000) {
+            if (Date.now() - lastTelTime.current > 5000) {
                 setDroneOnline(false);
             } else {
                 setDroneOnline(true);
