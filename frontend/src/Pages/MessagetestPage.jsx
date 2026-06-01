@@ -3,7 +3,7 @@ import { useAuthState } from '../Store/useAuthStore';
 import {
     Power, Circle, ShieldAlert, ExternalLink, X, Maximize2, Rocket, Signal, Sun, Moon, Satellite, ArrowRight, ArrowDownToLine
 } from "lucide-react";
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -88,6 +88,10 @@ export const MessagetestPage = () => {
     const lastTelTime = useRef(Date.now()); // Tracks when the last telemetry packet arrived
     const [mavLogs, setMavLogs] = useState([]);
     const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+    const [targetPos, setTargetPos] = useState(null);
+    const [targetColor, setTargetColor] = useState('#10b981');
+    const [coordInput, setCoordInput] = useState("");
+
 
 
     // --- REFS ---
@@ -149,6 +153,30 @@ export const MessagetestPage = () => {
             setHasInitialGpsAutoSwitch(false);
         }
     }, [isGpsLocked, hasInitialGpsAutoSwitch]);
+
+    // --- NEW MAP HELPERS ---
+    const getRandomColor = () => {
+        const colors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#22d3ee', '#818cf8', '#c084fc', '#f472b6', '#10b981'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    };
+
+    const createColoredIcon = (color) => L.divIcon({
+        html: `<svg width="25" height="41" viewBox="0 0 25 41" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 0C5.59645 0 0 5.59645 0 12.5C0 21.875 12.5 41 12.5 41C12.5 41 25 21.875 25 12.5C25 5.59645 19.4036 0 12.5 0Z" fill="${color}"/><circle cx="12.5" cy="12.5" r="5" fill="black" fill-opacity="0.3"/></svg>`,
+        className: "",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41]
+    });
+
+    // Helper: Catch Map Clicks
+    const MapClickHandler = () => {
+        useMapEvents({
+            click(e) {
+                setTargetPos([e.latlng.lat, e.latlng.lng]);
+                setTargetColor(getRandomColor());
+            },
+        });
+        return null;
+    };
 
     // YOUR REQUESTED DEFAULT COORDS
     const lat = gpsData.lat ? Number(gpsData.lat) : 31.787396049566723;
@@ -352,6 +380,9 @@ export const MessagetestPage = () => {
                         </span>
                     </div>
                 </div>
+
+
+
             </div>
 
             {/* --- SIDE TERMINAL DRAWER --- */}
@@ -407,7 +438,15 @@ export const MessagetestPage = () => {
             {/* UI HUD OVERLAY */}
             <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
                 <header className="w-full py-1 lg:py-3 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto">
+                    {/* TARGET COORDINATES DISPLAY */}
                     <div className="flex flex-row items-center justify-center gap-3 lg:gap-8 w-full px-4">
+                        {targetPos && (
+                            <div className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-mono leading-tight border-l-2 border-emerald-500/50 pl-2 animate-pulse">
+                                <p className="text-[6px] lg:text-[8px] uppercase opacity-50 font-black tracking-tighter">Target Lock</p>
+                                <p className="text-[8px] lg:text-[11px] font-bold">LA: {targetPos[0].toFixed(10)}</p>
+                                <p className="text-[8px] lg:text-[11px] font-bold">LO: {targetPos[1].toFixed(10)}</p>
+                            </div>
+                        )}
 
                         {/* LEFT SIDE: ROLL & PITCH */}
                         <div className="flex gap-3 lg:gap-6">
@@ -659,18 +698,73 @@ export const MessagetestPage = () => {
                         ? 'absolute top-0 right-0 w-1/2 h-screen border-l bg-black shadow-[-20px_0_30px_rgba(0,0,0,0.5)]'
                         : 'absolute top-4 right-10 w-25 h-25 lg:w-28 lg:h-28 rounded-2xl shadow-xl cursor-pointer hover:border-emerald-400'
                     }`}>
+
                 <div className="absolute top-3 left-3 flex flex-col gap-2 z-[1001]">
                     <button onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }} className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-white/10 text-emerald-400">
                         {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
                     </button>
                 </div>
-                {isMapExpanded && <button onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} className="absolute top-3 right-3 z-[1001] bg-red-600 p-2 rounded-lg text-white shadow-lg pointer-events-auto"><X size={20} /></button>}
+
+                {isMapExpanded && (
+                    <button onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} className="absolute top-3 right-3 z-[1001] bg-red-600 p-2 rounded-lg text-white shadow-lg pointer-events-auto">
+                        <X size={20} />
+                    </button>
+                )}
+
                 <MapContainer center={position} zoom={16} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
                     <TileLayer url={mapTiles} />
-                    <Marker position={position} key={`${lat}-${lon}`} />
+
+                    {/* Helper to catch clicks */}
+                    {isMapExpanded && <MapClickHandler />}
+
+                    {/* 1. The Drone Marker (Default Blue/Icon) */}
+                    <Marker position={position} key={`drone-${lat}-${lon}`} />
+
+                    {/* 2. The Target Marker and Line */}
+                    {targetPos && (
+                        <>
+                            <Marker position={targetPos} icon={createColoredIcon(targetColor)} />
+                            <Polyline
+                                positions={[position, targetPos]}
+                                color={targetColor}
+                                weight={2}
+                                dashArray="5, 10"
+                                opacity={0.8}
+                            />
+                        </>
+                    )}
+
                     <RecenterMap coords={position} />
                     <MapResizer isExpanded={isMapExpanded} />
                 </MapContainer>
+
+                {/* 3. THE EXECUTE BAR - Only visible when map is expanded */}
+                {isMapExpanded && (
+                    <div onClick={(e) => e.stopPropagation()} className="absolute bottom-6 left-6 right-6 z-[1001] flex gap-2">
+                        <div className="flex-1 bg-black/80 backdrop-blur-md border border-emerald-500/30 rounded-xl flex items-center px-4">
+                            <input
+                                type="text"
+                                placeholder="lon, lat"
+                                className="w-full bg-transparent border-none text-emerald-400 text-[10px] font-mono py-3 focus:ring-0 outline-none"
+                                value={coordInput}
+                                onChange={(e) => setCoordInput(e.target.value)}
+                            />
+                        </div>
+                        <button
+                            onClick={() => {
+                                const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
+                                if (coords.length === 2 && !isNaN(coords[0])) {
+                                    setTargetPos([coords[0], coords[1]]);
+                                    setTargetColor(getRandomColor());
+                                    setCoordInput("");
+                                }
+                            }}
+                            className="bg-emerald-600 text-black font-black text-[10px] px-6 rounded-xl"
+                        >
+                            EXECUTE
+                        </button>
+                    </div>
+                )}
             </div>
 
             <style dangerouslySetInnerHTML={{
