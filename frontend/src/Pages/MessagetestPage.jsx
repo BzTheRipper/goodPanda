@@ -198,8 +198,8 @@ export const MessagetestPage = () => {
             // If it's been more than 2 seconds since last telemetry, set offline
             if (Date.now() - lastTelTime.current > 5000) {
                 setDroneOnline(false);
-            } 
-            
+            }
+
         }, 500);
         return () => clearInterval(checkConnection);
     }, []);
@@ -406,16 +406,52 @@ export const MessagetestPage = () => {
 
             {/* UI HUD OVERLAY */}
             <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
-                <header className="w-full py-1 lg:py-2 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto">
-                    <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow">Panda Console</h1>
+                <header className="w-full py-1 lg:py-3 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto">
+                    <div className="flex flex-row items-center justify-center gap-3 lg:gap-8 w-full px-4">
 
-                    {/* Satellite color changes based on online status */}
-                    <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-xs lg:text-lg uppercase ${!droneOnline ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
-                        <Satellite size={isMobile ? 12 : 18} /> {droneOnline ? satCount : 0} Satellites
+                        {/* LEFT SIDE: ROLL & PITCH */}
+                        <div className="flex gap-3 lg:gap-6">
+                            {[
+                                { label: 'R', val: tel?.motors?.[0] },
+                                { label: 'P', val: tel?.motors?.[1] }
+                            ].map((item, i) => (
+                                <div key={i} className="flex flex-col items-center">
+                                    <span className="text-[7px] lg:text-[9px] text-gray-400 font-bold uppercase">{item.label}</span>
+                                    <span className="text-sm lg:text-lg font-mono font-black text-pink-500 drop-shadow-[0_0_5px_rgba(236,72,153,0.3)]">
+                                        {item.val || 1500}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* CENTER TITLE */}
+                        <h1 className="text-emerald-400 font-black tracking-[0.2em] lg:tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow px-2">
+                            Panda Console
+                        </h1>
+
+                        {/* RIGHT SIDE: YAW & THROTTLE */}
+                        <div className="flex gap-3 lg:gap-6">
+                            {[
+                                { label: 'Y', val: tel?.motors?.[2] },
+                                { label: 'T', val: tel?.motors?.[3] }
+                            ].map((item, i) => (
+                                <div key={i} className="flex flex-col items-center">
+                                    <span className="text-[7px] lg:text-[9px] text-gray-400 font-bold uppercase">{item.label}</span>
+                                    <span className="text-sm lg:text-lg font-mono font-black text-pink-500 drop-shadow-[0_0_5px_rgba(236,72,153,0.3)]">
+                                        {item.val || (item.label === 'T' ? 1000 : 1500)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* THE STATUS LIGHT: Green if droneOnline is true, Red otherwise */}
-                    <div className="absolute right-4 top-4 size-4 rounded-full shadow-lg transition-all duration-500"
+                    {/* SATELLITE BAR */}
+                    <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-[10px] lg:text-base uppercase ${!droneOnline ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
+                        <Satellite size={isMobile ? 12 : 16} /> {droneOnline ? satCount : 0} Satellites
+                    </div>
+
+                    {/* STATUS LIGHT */}
+                    <div className="absolute right-4 top-4 size-3 lg:size-4 rounded-full shadow-lg transition-all duration-500"
                         style={{
                             backgroundColor: droneOnline ? '#10b981' : '#dc2626',
                             boxShadow: droneOnline ? '0 0 15px #10b981' : '0 0 15px #dc2626'
@@ -457,7 +493,7 @@ export const MessagetestPage = () => {
                             className="size-12 lg:size-22  rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-90 transition-all hover:bg-emerald-500 hover:text-black group"
                         >
                             <Rocket className="size-5 lg:size-8 group-hover:animate-bounce" />
-                            <span className="text-[6.5px] lg:text-[15px] font-black leading-none mt-1 text-center">Fly 5m</span>
+                            <span className="text-[6.5px] lg:text-[15px] font-black leading-none mt-1 text-center">Fly</span>
                         </button>
 
                     </div>
