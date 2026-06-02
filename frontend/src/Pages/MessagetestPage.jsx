@@ -85,11 +85,13 @@ export const MessagetestPage = () => {
     const [hasInitialGpsAutoSwitch, setHasInitialGpsAutoSwitch] = useState(false);
     const [speed, setSpeed] = useState(20);
     const [droneOnline, setDroneOnline] = useState(false);
+    const [missionExecuted, setMissionExecuted] = useState(false);
     const lastTelTime = useRef(Date.now()); // Tracks when the last telemetry packet arrived
     const [mavLogs, setMavLogs] = useState([]);
     const [isTerminalOpen, setIsTerminalOpen] = useState(false);
     const [targetPos, setTargetPos] = useState(null);
     const [targetColor, setTargetColor] = useState('#10b981');
+    const [markerPoints, setMarkerPoints] = useState([]);
     const [coordInput, setCoordInput] = useState("");
     const [isAutonomous, setIsAutonomous] = useState(false);
     const [isLeftBarOpen, setIsLeftBarOpen] = useState(true);
@@ -97,6 +99,7 @@ export const MessagetestPage = () => {
 
     const handleClearTarget = useCallback(() => {
         setTargetPos(null);
+        setMarkerPoints([]);
     }, []);
 
 
@@ -162,10 +165,29 @@ export const MessagetestPage = () => {
         }
     }, [isGpsLocked, hasInitialGpsAutoSwitch]);
 
-    // --- NEW MAP HELPERS ---
+    const handleMissionExecute = () => {
+        if (!markerPoints.length) {
+            console.log("No marker selected. Marker array is empty.");
+            return null;
+        }
+
+        console.log("Executing mission with stored marker points:", markerPoints);
+        socket?.emit("user-message", {
+            markerPoints: markerPoints
+        });
+
+        return markerPoints;
+    }
+
     const getRandomColor = () => {
         const colors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#22d3ee', '#818cf8', '#c084fc', '#f472b6', '#10b981'];
         return colors[Math.floor(Math.random() * colors.length)];
+    };
+
+    const addMarkerPoint = (coords) => {
+        setTargetPos(coords);
+        setTargetColor(getRandomColor());
+        setMarkerPoints([coords]);
     };
 
     const createColoredIcon = (color) => L.divIcon({
@@ -179,8 +201,8 @@ export const MessagetestPage = () => {
     const MapClickHandler = ({ onTargetClear }) => {
         useMapEvents({
             click(e) {
-                setTargetPos([e.latlng.lat, e.latlng.lng]);
-                setTargetColor(getRandomColor());
+                const coords = [e.latlng.lat, e.latlng.lng];
+                addMarkerPoint(coords);
             },
             contextmenu(e) {
                 e.originalEvent.preventDefault();
@@ -258,6 +280,7 @@ export const MessagetestPage = () => {
                 speed: speed,
                 flight_mode: flightMode,
                 altitude: altitude
+
             });
             setVisualCommands(Array.from(combined));
         }, 100); // Your 100ms interval preserved
@@ -380,6 +403,11 @@ export const MessagetestPage = () => {
 
                             </div>
                             <div className="absolute right-4 top-4 size-3 lg:size-4 rounded-full shadow-lg" style={{ backgroundColor: droneOnline ? '#10b981' : '#dc2626' }} />
+                            {missionExecuted && (
+                                <div className="absolute right-16 top-3 z-[120] bg-black/70 border border-emerald-500/30 rounded-full px-2 py-1 text-[8px] sm:text-[10px] uppercase text-emerald-300 font-black">
+                                    MISSION EXECUTED
+                                </div>
+                            )}
                             {/* SATELLITE BAR */}
                             <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-[10px] lg:text-base uppercase ${!droneOnline ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
                                 <Satellite size={isMobile ? 12 : 16} /> {droneOnline ? satCount : 0} Satellites
@@ -408,28 +436,42 @@ export const MessagetestPage = () => {
                                 </div>
 
                                 {/* BOTTOM EXECUTE BAR */}
-                                <div className="space-y-2 pb-4">
-                                    <div className="bg-black/30 border border-emerald-500/30 rounded-xl px-3 py-1">
-                                        <input
-                                            type="text"
-                                            placeholder="lat, lon"
-                                            className={`w-full bg-transparent border-none text-[10px] font-mono focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
-                                            value={coordInput}
-                                            onChange={(e) => setCoordInput(e.target.value)}
-                                        />
+                                <div className="flex flex-col gap-2 pb-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 bg-black/30 border border-emerald-500/30 rounded-xl px-2 py-1 sm:px-3 sm:py-1.5">
+                                            <input
+                                                type="text"
+                                                placeholder="lat, lon"
+                                                className={`w-full bg-transparent border-none text-[9px] sm:text-[10px] font-mono focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
+                                                value={coordInput}
+                                                onChange={(e) => setCoordInput(e.target.value)}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
+                                                if (coords.length === 2 && !isNaN(coords[0])) {
+                                                    const parsed = [coords[0], coords[1]];
+                                                    addMarkerPoint(parsed);
+                                                    setCoordInput("");
+                                                }
+                                            }}
+                                            className="bg-emerald-600 text-black font-black text-[9px] sm:text-[10px] px-4 py-2 rounded-xl active:scale-95 transition-all"
+                                        >
+                                            Confirm
+                                        </button>
                                     </div>
                                     <button
                                         onClick={() => {
-                                            const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
-                                            if (coords.length === 2 && !isNaN(coords[0])) {
-                                                setTargetPos([coords[0], coords[1]]);
-                                                setTargetColor(getRandomColor());
-                                                setCoordInput("");
-                                            }
+                                            if (!markerPoints.length) return;
+                                            handleMissionExecute();
+                                            setMissionExecuted(true);
+                                            setTimeout(() => setMissionExecuted(false), 5000);
                                         }}
-                                        className="w-full bg-emerald-600 text-black font-black text-[10px] py-2 rounded-xl active:scale-95 transition-all"
+                                        disabled={!markerPoints.length}
+                                        className={`w-full text-black font-black text-[9px] sm:text-[10px] py-2 rounded-xl active:scale-95 transition-all ${markerPoints.length ? 'bg-purple-600' : 'bg-slate-400 cursor-not-allowed'}`}
                                     >
-                                        EXECUTE MISSION
+                                        EXECUTE
                                     </button>
                                 </div>
                             </div>
@@ -440,9 +482,9 @@ export const MessagetestPage = () => {
 
                         {/* Arm land slide bar */}
                         {/* Velocit Limit slide bar */}
-                        <div className="absolute left-1/2 bottom-6 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-xl px-4">
+                        <div className="absolute left-1/2 bottom-5 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-xl px-4">
                             <div className="mx-auto flex w-full items-center justify-center gap-4">
-                                <div className="flex-none w-[220px] select-none">
+                                <div className="flex-none w-[220px] select-none mt-20">
                                     <div className="flex flex-col gap-1 w-full justify-end items-center">
                                         <div className="flex justify-between w-full px-1 mb-1">
                                             <span className="text-[8px] lg:text-[10px] text-orange-400 font-black uppercase tracking-widest">Velocity Limit</span>
@@ -560,7 +602,7 @@ export const MessagetestPage = () => {
                                         </button>
                                     </div>
                                     {targetPos && (
-                                        <div className="absolute top-4 right-70 z-[1000] pointer-events-auto">
+                                        <div style={{ position: 'absolute', top: '4rem', right: isRightBarOpen ? '18rem' : '3rem', zIndex: 1000 }} className="pointer-events-auto">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleClearTarget(); }}
                                                 className={`flex items-center gap-2 px-1 py-2 rounded-full transition ${isDarkMode ? 'bg-white/10 border border-white/60 text-white hover:bg-white/20' : 'bg-black border border-black/70 text-white hover:bg-black/80'}`}
@@ -720,7 +762,7 @@ export const MessagetestPage = () => {
                         {/* UI HUD OVERLAY */}
 
 
-                        <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
+                        <div className="absolute inset-0 z-10 flex flex-col pointer-events-auto">
 
                             <header onPointerDown={(e) => e.preventDefault()} className="w-full py-1 lg:py-3 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 pointer-events-auto select-none">
                                 {/* TARGET COORDINATES DISPLAY */}
@@ -817,11 +859,11 @@ export const MessagetestPage = () => {
                                 <p className="text-[7px] lg:text-[9px] text-blue-500 uppercase font-black vertical-text mt-2">Altitude</p>
                             </div>
 
-                            <main className="flex-1 w-full flex flex-row items-end justify-between px-2 pb-2 lg:px-12 lg:pb-12">
+                            <main className="flex-1 w-full flex flex-col md:flex-row items-end md:items-end justify-between px-2 pb-2 lg:px-12 lg:pb-12 gap-4 md:gap-0">
 
                                 {/* LEFT SECTION (JOYSTICK + TAKEOFF) */}
-                                <div className="flex-1 flex items-center justify-start gap-12 lg:gap-20 pointer-events-auto">
-                                    <div className="flex flex-col items-center ml-4 mb-2 lg:ml-10 lg:mb-6">
+                                <div className="w-full md:flex-1 flex items-center justify-center md:justify-start gap-6 md:gap-12 lg:gap-20 pointer-events-auto">
+                                    <div className="flex flex-col items-center ml-0 md:ml-4 mb-2 md:mb-2 lg:ml-10 lg:mb-6 w-full md:w-auto">
                                         <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Movement</p>
                                         <Joystick onMove={(dx, dy, r) => {
                                             const t = r * 0.3; const d = new Set();
@@ -842,8 +884,8 @@ export const MessagetestPage = () => {
                                 </div>
 
                                 {/* CENTER HUD & SLIDER */}
-                                <div className="flex-none flex flex-row items-end justify-center gap-2 lg:gap-10 mb-2 pointer-events-auto">
-                                    <div className="flex flex-col gap-1 w-50 lg:w-80 justify-end items-center">
+                                <div className="flex-none w-full md:w-auto flex flex-row items-end justify-center gap-2 lg:gap-10 mb-2 pointer-events-auto">
+                                    <div className="flex flex-col gap-1 w-full md:w-50 lg:w-80 justify-end items-center">
                                         <div className='flex flex-col items-center w-full px-2 mb-1 pointer-events-auto'>
                                             {/* Label Row */}
                                             <div className="flex justify-between w-full px-1 mb-1">
@@ -952,7 +994,7 @@ export const MessagetestPage = () => {
                                             setYPos(0);
                                             hasTriggeredAction.current = false;
                                         }}
-                                        className="relative w-10 lg:w-14 h-32 lg:h-56 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible"
+                                        className="relative w-16 md:w-10 lg:w-14 h-24 md:h-32 lg:h-56 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible"
                                     >
                                         <div className="absolute top-2 text-[5px] lg:text-[7px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
                                         <div className="absolute bottom-2 text-[5px] lg:text-[7px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
@@ -982,7 +1024,7 @@ export const MessagetestPage = () => {
                                 </div>
 
                                 {/* RIGHT SECTION (JOYSTICK + TAKEOFF) */}
-                                <div className="flex-1 flex justify-end pr-8 lg:pr-0 pointer-events-auto">
+                                <div className="w-full md:flex-1 flex justify-center md:justify-end pr-0 md:pr-8 lg:pr-0 pointer-events-auto">
                                     <div className="flex flex-col items-center mr-4 mb-2 lg:mr-10 lg:mb-6">
                                         <p className="text-[8px] text-emerald-500/40 font-bold mb-2 uppercase italic tracking-widest">Yaw / Rotate</p>
                                         <Joystick onMove={(dx, dy, r) => {
@@ -1043,26 +1085,25 @@ export const MessagetestPage = () => {
 
                             {/* 3. THE EXECUTE BAR - Only visible when map is expanded */}
                             {isMapExpanded && (
-                                <div onClick={(e) => e.stopPropagation()} className="absolute bottom-6 left-6 right-6 z-[1001] flex gap-2">
-                                    <div className="flex-1 bg-black/80 backdrop-blur-md border border-emerald-500/30 rounded-xl flex items-center px-4">
+                                <div onClick={(e) => e.stopPropagation()} className="absolute bottom-4 left-4 right-4 z-[1001] flex flex-col sm:flex-row gap-2">
+                                    <div className="flex-1 bg-black/80 backdrop-blur-md border border-emerald-500/30 rounded-xl flex items-center px-3 py-2 sm:px-4 sm:py-3">
                                         <input
                                             type="text"
                                             placeholder="lon, lat"
-                                            className={`w-full bg-transparent border-none text-[10px] font-mono py-3 focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
+                                            className={`w-full bg-transparent border-none text-[9px] sm:text-[10px] font-mono py-2 sm:py-3 focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
                                             value={coordInput}
                                             onChange={(e) => setCoordInput(e.target.value)}
                                         />
                                     </div>
                                     <button
                                         onClick={() => {
-                                            const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
-                                            if (coords.length === 2 && !isNaN(coords[0])) {
-                                                setTargetPos([coords[0], coords[1]]);
-                                                setTargetColor(getRandomColor());
-                                                setCoordInput("");
-                                            }
+                                            if (!markerPoints.length) return;
+                                            handleMissionExecute();
+                                            setMissionExecuted(true);
+                                            setTimeout(() => setMissionExecuted(false), 5000);
                                         }}
-                                        className="bg-emerald-600 text-black font-black text-[10px] px-6 rounded-xl"
+                                        disabled={!markerPoints.length}
+                                        className={`font-black text-[9px] sm:text-[10px] px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition ${markerPoints.length ? 'bg-emerald-600 text-black' : 'bg-slate-400 text-slate-700 cursor-not-allowed'}`}
                                     >
                                         EXECUTE
                                     </button>
