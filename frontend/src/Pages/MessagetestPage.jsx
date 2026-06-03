@@ -165,12 +165,7 @@ export const MessagetestPage = () => {
         }
     }, [isGpsLocked, hasInitialGpsAutoSwitch]);
 
-    const handleMissionExecute = () => {
-        if (!markerPoints.length) {
-            console.log("No marker selected. Marker array is empty.");
-            return null;
-        }
-    }
+    
 
     const getRandomColor = () => {
         const colors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#22d3ee', '#818cf8', '#c084fc', '#f472b6', '#10b981'];
@@ -341,8 +336,16 @@ export const MessagetestPage = () => {
     };
 
     const handleForceDisarm = () => socket?.emit('user-message', { commands: ["force_disarm"], altitude });
-    const handleTakeoff5m = () => socket?.emit('user-message', { commands: ["fly"], altitude: 5 });
-
+    const handleTakeoff5m = () => socket?.emit('user-message', { commands: ["fly"]});
+    const handleMissionExecute = () => {
+        if (!markerPoints.length) {
+            console.log("No marker selected. Marker array is empty.");
+            return null;
+        }
+        else{
+            socket?.emit('user-message', { commands: ["execute"]});
+        }
+    }
     return (
         <div>
             {isAutonomous ?
