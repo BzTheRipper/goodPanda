@@ -338,14 +338,12 @@ export const MessagetestPage = () => {
     const handleForceDisarm = () => socket?.emit('user-message', { commands: ["force_disarm"], altitude });
     const handleTakeoff5m = () => socket?.emit('user-message', { commands: ["fly"] });
     const handleMissionExecute = () => {
-        if (!markerPoints.length) {
-            console.log("No marker selected. Marker array is empty.");
-            return null;
+        if (markerPoints.length) {
+            activeKeys.current.add("execute");
+            // Keep it in the heartbeat for 500ms to ensure the Pi registers it
+            setTimeout(() => activeKeys.current.delete("execute"), 500);
         }
-        else {
-            socket?.emit('user-message', { commands: ["execute"] });
-        }
-    }
+    };
     return (
         <div>
             {isAutonomous ?
@@ -422,7 +420,7 @@ export const MessagetestPage = () => {
                                             <p className="text-[6px] text-gray-500 uppercase font-bold tracking-tighter">Mission Params</p>
                                             {/* Empty for now */}
                                         </div>
-                                        <button onClick={() => setIsLeftBarOpen(!isLeftBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-r-lg text-emerald-500 ml-[-1px]">
+                                                <button onPointerDown={() => setIsLeftBarOpen(!isLeftBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-r-lg text-emerald-500 ml-[-1px] pointer-events-auto">
                                             <ArrowRight size={16} className={`transition-transform ${isLeftBarOpen ? 'rotate-180' : ''}`} />
                                         </button>
                                     </div>
@@ -442,13 +440,15 @@ export const MessagetestPage = () => {
                                                         <input
                                                             type="text"
                                                             placeholder="lat, lon"
-                                                            className={`w-full bg-transparent border-none text-[8px] sm:text-[9px] font-mono focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
+                                                                onPointerDown={(e) => e.stopPropagation()}
+                                                                className={`w-full bg-transparent border-none text-[8px] sm:text-[9px] font-mono focus:ring-0 outline-none select-text ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
                                                             value={coordInput}
                                                             onChange={(e) => setCoordInput(e.target.value)}
                                                         />
                                                     </div>
                                                     <button
-                                                        onClick={() => {
+                                                            onPointerDown={(e) => {
+                                                                e.stopPropagation();
                                                             const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
                                                             if (coords.length === 2 && !isNaN(coords[0])) {
                                                                 const parsed = [coords[0], coords[1]];
@@ -475,7 +475,7 @@ export const MessagetestPage = () => {
                                                 </button>
                                             </div>
                                         </div>
-                                        <button onClick={() => setIsRightBarOpen(!isRightBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-l-lg text-emerald-500 mr-[-1px]">
+                                            <button onPointerDown={() => setIsRightBarOpen(!isRightBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-l-lg text-emerald-500 mr-[-1px] pointer-events-auto">
                                             <ArrowRight size={16} className={`transition-transform ${isRightBarOpen ? '' : 'rotate-180'}`} />
                                         </button>
                                     </div>
@@ -715,7 +715,7 @@ export const MessagetestPage = () => {
                                                 <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">Mission Params</p>
                                                 {/* Empty for now */}
                                             </div>
-                                            <button onClick={() => setIsLeftBarOpen(!isLeftBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-r-lg text-emerald-500 ml-[-1px]">
+                                            <button onPointerDown={() => setIsLeftBarOpen(!isLeftBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-r-lg text-emerald-500 ml-[-1px] pointer-events-auto">
                                                 <ArrowRight size={16} className={`transition-transform ${isLeftBarOpen ? 'rotate-180' : ''}`} />
                                             </button>
                                         </div>
@@ -735,13 +735,15 @@ export const MessagetestPage = () => {
                                                             <input
                                                                 type="text"
                                                                 placeholder="lat, lon"
-                                                                className={`w-full bg-transparent border-none text-[8px] sm:text-[9px] font-mono focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
+                                                                onPointerDown={(e) => e.stopPropagation()}
+                                                                className={`w-full bg-transparent border-none text-[8px] sm:text-[9px] font-mono focus:ring-0 outline-none select-text ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
                                                                 value={coordInput}
                                                                 onChange={(e) => setCoordInput(e.target.value)}
                                                             />
                                                         </div>
                                                         <button
-                                                            onClick={() => {
+                                                            onPointerDown={(e) => {
+                                                                e.stopPropagation();
                                                                 const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
                                                                 if (coords.length === 2 && !isNaN(coords[0])) {
                                                                     const parsed = [coords[0], coords[1]];
@@ -768,7 +770,7 @@ export const MessagetestPage = () => {
                                                     </button>
                                                 </div>
                                             </div>
-                                            <button onClick={() => setIsRightBarOpen(!isRightBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-l-lg text-emerald-500 mr-[-1px]">
+                                            <button onPointerDown={() => setIsRightBarOpen(!isRightBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-l-lg text-emerald-500 mr-[-1px] pointer-events-auto">
                                                 <ArrowRight size={16} className={`transition-transform ${isRightBarOpen ? '' : 'rotate-180'}`} />
                                             </button>
                                         </div>
@@ -1426,7 +1428,13 @@ export const MessagetestPage = () => {
                 .green-glow { text-shadow: 0 0 10px rgba(45, 212, 191, 0.6); } 
                 .vertical-text { writing-mode: vertical-rl; }
                 input[type=range] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; }
-                * { -webkit-tap-highlight-color: transparent !important; }
+                * { -webkit-tap-highlight-color: transparent !important; touch-action: none; }
+                input[type=text] { 
+                    touch-action: auto !important; 
+                    -webkit-user-select: text !important; 
+                    user-select: text !important; 
+                    cursor: text !important;
+                }
             ` }} />
 
                     </div >
