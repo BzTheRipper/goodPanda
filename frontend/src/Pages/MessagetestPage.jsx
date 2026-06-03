@@ -170,16 +170,6 @@ export const MessagetestPage = () => {
             console.log("No marker selected. Marker array is empty.");
             return null;
         }
-
-        console.log("Executing mission with stored marker points:", markerPoints);
-        for (let i = 0; i < 5; i++) {
-            socket?.emit("user-message", {
-                markerPoints: markerPoints
-            });
-        }
-
-
-        return markerPoints;
     }
 
     const getRandomColor = () => {
@@ -282,13 +272,14 @@ export const MessagetestPage = () => {
                 commands: Array.from(combined),
                 speed: speed,
                 flight_mode: flightMode,
-                altitude: altitude
+                altitude: altitude,
+                markerPoints: markerPoints
 
             });
             setVisualCommands(Array.from(combined));
         }, 100); // Your 100ms interval preserved
         return () => clearInterval(interval);
-    }, [socket, speed, flightMode, altitude]);
+    }, [socket, speed, flightMode, altitude, markerPoints]);
 
     const ModeSlider = () => {
         const modes = ["ALT_HOLD", "LOITER", "GUIDED"];
