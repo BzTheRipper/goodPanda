@@ -172,9 +172,12 @@ export const MessagetestPage = () => {
         }
 
         console.log("Executing mission with stored marker points:", markerPoints);
-        socket?.emit("user-message", {
-            markerPoints: markerPoints
-        });
+        for (let i = 0; i < 5; i++) {
+            socket?.emit("user-message", {
+                markerPoints: markerPoints
+            });
+        }
+
 
         return markerPoints;
     }
@@ -353,287 +356,579 @@ export const MessagetestPage = () => {
         <div>
             {isAutonomous ?
                 (
-                    <div className="h-[100dvh] w-full bg-black flex flex-col overflow-hidden relative">
-                        {/* --- SHARED HEADER --- */}
-                        <header onPointerDown={(e) => e.preventDefault()} className="w-full py-1 lg:py-3 flex flex-col items-center bg-black/60 backdrop-blur-md border-b border-white/10 z-[110] pointer-events-auto select-none">
-                            <div className="flex flex-row items-center justify-center gap-3 lg:gap-8 w-full px-4">
-                                {targetPos && (
-                                    <div className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-mono leading-tight border-l-2 border-emerald-500/50 pl-2 animate-pulse hidden md:block">
-                                        <p className="text-[6px] lg:text-[8px] uppercase opacity-50 font-black tracking-tighter">Target Lock</p>
-                                        <p className="text-[8px] lg:text-[11px] font-bold">LA: {targetPos[0].toFixed(10)}</p>
-                                        <p className="text-[8px] lg:text-[11px] font-bold">LO: {targetPos[1].toFixed(10)}</p>
-                                    </div>
-                                )}
+                    <div>
+                        {
+                            isMobile ? (
+                                <div className="h-[100dvh] w-full bg-black flex flex-col overflow-hidden relative">
+                                    {/* --- SHARED HEADER --- */}
+                                    <header onPointerDown={(e) => e.preventDefault()} className="w-full py-1 lg:py-3 flex flex-col items-center bg-black/60 backdrop-blur-md border-b border-white/10 z-[110] pointer-events-auto select-none">
+                                        <div className="flex flex-row items-center justify-center gap-3 lg:gap-8 w-full px-4">
+                                            {targetPos && (
+                                                <div className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-mono leading-tight border-l-2 border-emerald-500/50 pl-2 animate-pulse hidden md:block">
+                                                    <p className="text-[6px] lg:text-[8px] uppercase opacity-50 font-black tracking-tighter">Target Lock</p>
+                                                    <p className="text-[8px] lg:text-[11px] font-bold">LA: {targetPos[0].toFixed(10)}</p>
+                                                    <p className="text-[8px] lg:text-[11px] font-bold">LO: {targetPos[1].toFixed(10)}</p>
+                                                </div>
+                                            )}
 
-                                {/* DUAL MODE TOGGLE */}
-                                <div onPointerDown={(e) => e.preventDefault()} className="flex flex-col items-center gap-1 select-none">
-                                    <span className={`text-[6px] lg:text-[7px] font-black uppercase tracking-tighter transition-colors ${isAutonomous ? 'text-purple-400' : 'text-emerald-400'}`}>
-                                        {isAutonomous ? 'Autonomous' : 'Manual'}
-                                    </span>
-                                    <button
-                                        onPointerDown={(e) => e.preventDefault()}
-                                        onClick={() => setIsAutonomous(!isAutonomous)}
-                                        className={`relative w-10 lg:w-12 h-5 lg:h-6 rounded-full border transition-all duration-300 select-none ${isAutonomous ? 'bg-purple-900/30 border-purple-500/50' : 'bg-emerald-900/30 border-emerald-500/50'}`}
-                                    >
-                                        <div className={`absolute top-1/2 -translate-y-1/2 size-3 lg:size-4 rounded-full transition-all duration-300 flex items-center justify-center ${isAutonomous ? 'left-[calc(100%-16px)] lg:left-[calc(100%-20px)] bg-purple-500 shadow-[0_0_10px_#a855f7]' : 'left-1 bg-emerald-500 shadow-[0_0_10px_#10b981]'}`}>
-                                            {isAutonomous ? <Rocket size={8} className="text-black" /> : <ShieldAlert size={8} className="text-black" />}
+                                            {/* DUAL MODE TOGGLE */}
+                                            <div onPointerDown={(e) => e.preventDefault()} className="flex flex-col items-center gap-1 select-none">
+                                                <span className={`text-[6px] lg:text-[7px] font-black uppercase tracking-tighter transition-colors ${isAutonomous ? 'text-purple-400' : 'text-emerald-400'}`}>
+                                                    {isAutonomous ? 'Autonomous' : 'Manual'}
+                                                </span>
+                                                <button
+                                                    onPointerDown={(e) => e.preventDefault()}
+                                                    onClick={() => setIsAutonomous(!isAutonomous)}
+                                                    className={`relative w-10 lg:w-12 h-5 lg:h-6 rounded-full border transition-all duration-300 select-none ${isAutonomous ? 'bg-purple-900/30 border-purple-500/50' : 'bg-emerald-900/30 border-emerald-500/50'}`}
+                                                >
+                                                    <div className={`absolute top-1/2 -translate-y-1/2 size-3 lg:size-4 rounded-full transition-all duration-300 flex items-center justify-center ${isAutonomous ? 'left-[calc(100%-16px)] lg:left-[calc(100%-20px)] bg-purple-500 shadow-[0_0_10px_#a855f7]' : 'left-1 bg-emerald-500 shadow-[0_0_10px_#10b981]'}`}>
+                                                        {isAutonomous ? <Rocket size={8} className="text-black" /> : <ShieldAlert size={8} className="text-black" />}
+                                                    </div>
+                                                </button>
+                                            </div>
+
+                                            <div className="flex gap-3 lg:gap-6">
+                                                {[{ label: 'R', val: tel?.motors?.[0] }, { label: 'P', val: tel?.motors?.[1] }].map((item, i) => (
+                                                    <div key={i} className="flex flex-col items-center">
+                                                        <span className="text-[7px] lg:text-[9px] text-gray-400 font-bold uppercase">{item.label}</span>
+                                                        <span className="text-sm lg:text-lg font-mono font-black text-pink-500">{item.val || 1500}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <h1 className="text-emerald-400 font-black tracking-[0.2em] lg:tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow px-2">Panda Console</h1>
+
+                                            <div className="flex gap-3 lg:gap-6">
+                                                {[{ label: 'Y', val: tel?.motors?.[2] }, { label: 'T', val: tel?.motors?.[3] }].map((item, i) => (
+                                                    <div key={i} className="flex flex-col items-center">
+                                                        <span className="text-[7px] lg:text-[9px] text-gray-400 font-bold uppercase">{item.label}</span>
+                                                        <span className="text-sm lg:text-lg font-mono font-black text-pink-500">{item.val || 1500}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
                                         </div>
-                                    </button>
-                                </div>
-
-                                <div className="flex gap-3 lg:gap-6">
-                                    {[{ label: 'R', val: tel?.motors?.[0] }, { label: 'P', val: tel?.motors?.[1] }].map((item, i) => (
-                                        <div key={i} className="flex flex-col items-center">
-                                            <span className="text-[7px] lg:text-[9px] text-gray-400 font-bold uppercase">{item.label}</span>
-                                            <span className="text-sm lg:text-lg font-mono font-black text-pink-500">{item.val || 1500}</span>
+                                        <div className="absolute right-4 top-4 size-3 lg:size-4 rounded-full shadow-lg" style={{ backgroundColor: droneOnline ? '#10b981' : '#dc2626' }} />
+                                        {missionExecuted && (
+                                            <div className="absolute right-16 top-3 z-[120] bg-black/70 border border-emerald-500/30 rounded-full px-2 py-1 text-[8px] sm:text-[10px] uppercase text-emerald-300 font-black">
+                                                MISSION EXECUTED
+                                            </div>
+                                        )}
+                                        {/* SATELLITE BAR */}
+                                        <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-[10px] lg:text-base uppercase ${!droneOnline ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
+                                            <Satellite size={isMobile ? 12 : 16} /> {droneOnline ? satCount : 0} Satellites
                                         </div>
-                                    ))}
-                                </div>
+                                    </header>
 
-                                <h1 className="text-emerald-400 font-black tracking-[0.2em] lg:tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow px-2">Panda Console</h1>
 
-                                <div className="flex gap-3 lg:gap-6">
-                                    {[{ label: 'Y', val: tel?.motors?.[2] }, { label: 'T', val: tel?.motors?.[3] }].map((item, i) => (
-                                        <div key={i} className="flex flex-col items-center">
-                                            <span className="text-[7px] lg:text-[9px] text-gray-400 font-bold uppercase">{item.label}</span>
-                                            <span className="text-sm lg:text-lg font-mono font-black text-pink-500">{item.val || 1500}</span>
+
+                                    {/* --- LEFT SIDEBAR --- */}
+                                    <div className={`absolute left-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center select-none ${isLeftBarOpen ? 'translate-x-0' : '-translate-x-32'}`}>
+                                        <div className="w-32 h-[95%] bg-black/1 backdrop-blur-sm border-r border-white/10 rounded-r-3xl p-2">
+                                            <p className="text-[6px] text-gray-500 uppercase font-bold tracking-tighter">Mission Params</p>
+                                            {/* Empty for now */}
                                         </div>
-                                    ))}
-                                </div>
-
-                            </div>
-                            <div className="absolute right-4 top-4 size-3 lg:size-4 rounded-full shadow-lg" style={{ backgroundColor: droneOnline ? '#10b981' : '#dc2626' }} />
-                            {missionExecuted && (
-                                <div className="absolute right-16 top-3 z-[120] bg-black/70 border border-emerald-500/30 rounded-full px-2 py-1 text-[8px] sm:text-[10px] uppercase text-emerald-300 font-black">
-                                    MISSION EXECUTED
-                                </div>
-                            )}
-                            {/* SATELLITE BAR */}
-                            <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-[10px] lg:text-base uppercase ${!droneOnline ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
-                                <Satellite size={isMobile ? 12 : 16} /> {droneOnline ? satCount : 0} Satellites
-                            </div>
-                        </header>
-
-
-
-                        {/* --- LEFT SIDEBAR --- */}
-                        <div className={`absolute left-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center select-none ${isLeftBarOpen ? 'translate-x-0' : '-translate-x-48'}`}>
-                            <div className="w-48 h-[95%] bg-black/1 backdrop-blur-sm border-r border-white/10 rounded-r-3xl p-4">
-                                <p className="text-[8px] text-gray-500 uppercase font-bold tracking-widest">Mission Params</p>
-                                {/* Empty for now */}
-                            </div>
-                            <button onClick={() => setIsLeftBarOpen(!isLeftBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-r-lg text-emerald-500 ml-[-1px]">
-                                <ArrowRight size={16} className={`transition-transform ${isLeftBarOpen ? 'rotate-180' : ''}`} />
-                            </button>
-                        </div>
-
-
-                        {/* --- RIGHT SIDEBAR --- */}
-                        <div className={`absolute right-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center flex-row-reverse select-none ${isRightBarOpen ? 'translate-x-0' : 'translate-x-64'}`}>
-                            <div className="w-64 h-[95%] bg-black/1 backdrop-blur-sm border-l border-white/10 rounded-l-3xl p-4 flex flex-col justify-between">
-                                <div className="flex-1">
-                                    <p className="text-[8px] text-gray-500 uppercase font-bold tracking-widest text-right">Navigation Data</p>
-                                </div>
-
-                                {/* BOTTOM EXECUTE BAR */}
-                                <div className="flex flex-col gap-2 pb-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex-1 bg-black/30 border border-emerald-500/30 rounded-xl px-2 py-1 sm:px-3 sm:py-1.5">
-                                            <input
-                                                type="text"
-                                                placeholder="lat, lon"
-                                                className={`w-full bg-transparent border-none text-[9px] sm:text-[10px] font-mono focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
-                                                value={coordInput}
-                                                onChange={(e) => setCoordInput(e.target.value)}
-                                            />
-                                        </div>
-                                        <button
-                                            onClick={() => {
-                                                const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
-                                                if (coords.length === 2 && !isNaN(coords[0])) {
-                                                    const parsed = [coords[0], coords[1]];
-                                                    addMarkerPoint(parsed);
-                                                    setCoordInput("");
-                                                }
-                                            }}
-                                            className="bg-emerald-600 text-black font-black text-[9px] sm:text-[10px] px-4 py-2 rounded-xl active:scale-95 transition-all"
-                                        >
-                                            Confirm
+                                        <button onClick={() => setIsLeftBarOpen(!isLeftBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-r-lg text-emerald-500 ml-[-1px]">
+                                            <ArrowRight size={16} className={`transition-transform ${isLeftBarOpen ? 'rotate-180' : ''}`} />
                                         </button>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            if (!markerPoints.length) return;
-                                            handleMissionExecute();
-                                            setMissionExecuted(true);
-                                            setTimeout(() => setMissionExecuted(false), 5000);
-                                        }}
-                                        disabled={!markerPoints.length}
-                                        className={`w-full text-black font-black text-[9px] sm:text-[10px] py-2 rounded-xl active:scale-95 transition-all ${markerPoints.length ? 'bg-purple-600' : 'bg-slate-400 cursor-not-allowed'}`}
-                                    >
-                                        EXECUTE
-                                    </button>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsRightBarOpen(!isRightBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-l-lg text-emerald-500 mr-[-1px]">
-                                <ArrowRight size={16} className={`transition-transform ${isRightBarOpen ? '' : 'rotate-180'}`} />
-                            </button>
-                        </div>
 
-                        {/* Arm land slide bar */}
-                        {/* Velocit Limit slide bar */}
-                        <div className="absolute left-1/2 bottom-5 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-xl px-4">
-                            <div className="mx-auto flex w-full items-center justify-center gap-4">
-                                <div className="flex-none w-[220px] select-none mt-20">
-                                    <div className="flex flex-col gap-1 w-full justify-end items-center">
-                                        <div className="flex justify-between w-full px-1 mb-1">
-                                            <span className="text-[8px] lg:text-[10px] text-orange-400 font-black uppercase tracking-widest">Velocity Limit</span>
-                                            <span className="text-[10px] lg:text-[12px] text-orange-400 font-mono font-bold">{speed}%</span>
+
+                                    {/* --- RIGHT SIDEBAR --- */}
+                                    <div className={`absolute right-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center flex-row-reverse select-none ${isRightBarOpen ? 'translate-x-0' : 'translate-x-44'}`}>
+                                        <div className="w-44 h-[95%] bg-black/1 backdrop-blur-sm border-l border-white/10 rounded-l-3xl p-2 flex flex-col justify-between">
+                                            <div className="flex-1">
+                                                <p className="text-[6px] text-gray-500 uppercase font-bold tracking-tighter text-right">Navigation Data</p>
+                                            </div>
+
+                                            {/* BOTTOM EXECUTE BAR */}
+                                            <div className="flex flex-col gap-1 pb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-1 bg-black/30 border border-emerald-500/30 rounded-lg px-1.5 py-0.5 sm:px-1 sm:py-0.5">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="lat, lon"
+                                                            className={`w-full bg-transparent border-none text-[8px] sm:text-[9px] font-mono focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
+                                                            value={coordInput}
+                                                            onChange={(e) => setCoordInput(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
+                                                            if (coords.length === 2 && !isNaN(coords[0])) {
+                                                                const parsed = [coords[0], coords[1]];
+                                                                addMarkerPoint(parsed);
+                                                                setCoordInput("");
+                                                            }
+                                                        }}
+                                                        className="bg-emerald-600 text-black font-black text-[7px] sm:text-[9px] px-2 py-1 rounded-lg active:scale-95 transition-all"
+                                                    >
+                                                        Confirm
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        if (!markerPoints.length) return;
+                                                        handleMissionExecute();
+                                                        setMissionExecuted(true);
+                                                        setTimeout(() => setMissionExecuted(false), 5000);
+                                                    }}
+                                                    disabled={!markerPoints.length}
+                                                    className={`w-full text-black font-black text-[7px] sm:text-[9px] py-1 rounded-lg active:scale-95 transition-all ${markerPoints.length ? 'bg-purple-600' : 'bg-slate-400 cursor-not-allowed'}`}
+                                                >
+                                                    EXECUTE
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="relative w-full h-6 lg:h-8 bg-black/60 border border-orange-500/30 rounded-full p-0.5 overflow-hidden shadow-2xl flex items-center">
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="100"
-                                                step="5"
-                                                value={speed}
-                                                onChange={(e) => setSpeed(parseInt(e.target.value))}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-10"
-                                                style={{ WebkitAppearance: 'none', appearance: 'none', width: '100%', height: '100%' }}
-                                            />
-                                            <div
-                                                className="h-full bg-gradient-to-r from-orange-700 to-orange-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(249,115,22,0.4)]"
-                                                style={{ width: `${speed}%` }}
-                                            />
-                                        </div>
-                                        <p className="text-[7px] lg:text-[8px] text-orange-500 uppercase font-black mt-2">Sensitivity Control</p>
+                                        <button onClick={() => setIsRightBarOpen(!isRightBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-l-lg text-emerald-500 mr-[-1px]">
+                                            <ArrowRight size={16} className={`transition-transform ${isRightBarOpen ? '' : 'rotate-180'}`} />
+                                        </button>
                                     </div>
-                                </div>
 
-                                <div className="relative w-12 lg:w-14 h-28 lg:h-44 ml-4 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible">
-                                    <div ref={sliderRef} style={{ touchAction: 'none', userSelect: 'none' }}
-                                        onPointerDown={(e) => {
-                                            e.preventDefault();
-                                            e.currentTarget.setPointerCapture(e.pointerId);
-                                            setIsDraggingSlider(true);
-                                            hasTriggeredAction.current = false;
-                                        }}
-                                        onPointerMove={(e) => {
-                                            if (!isDraggingSlider || !sliderRef.current) return;
-                                            const rect = sliderRef.current.getBoundingClientRect();
-                                            const clientY = e.nativeEvent.clientY || e.clientY;
-                                            let dy = clientY - (rect.top + rect.height / 2);
-                                            const maxRange = rect.height / 2 - 10;
-                                            dy = Math.max(-maxRange, Math.min(maxRange, dy));
-                                            setYPos(dy);
-                                            const threshold = maxRange * 0.7;
-                                            if (!hasTriggeredAction.current) {
-                                                if (dy <= -threshold) {
-                                                    activeKeys.current.add("arm");
-                                                    if (navigator.vibrate) navigator.vibrate(50);
-                                                    hasTriggeredAction.current = true;
-                                                    setTimeout(() => activeKeys.current.delete("arm"), 500);
-                                                } else if (dy >= threshold) {
-                                                    activeKeys.current.delete("arm");
-                                                    activeKeys.current.add("land");
-                                                    if (navigator.vibrate) navigator.vibrate(50);
-                                                    hasTriggeredAction.current = true;
-                                                    setTimeout(() => {
-                                                        activeKeys.current.delete("land");
+                                    {/* Arm land slide bar */}
+                                    {/* Velocit Limit slide bar */}
+                                    <div className="absolute left-1/2 bottom-2 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-lg px-2">
+                                        <div className="mx-auto flex w-full items-center justify-center gap-2">
+                                            <div className="flex-none w-[160px] select-none mt-12">
+                                                <div className="flex flex-col gap-0.5 w-full justify-end items-center">
+                                                    <div className="flex justify-between w-full px-1 mb-0.5">
+                                                        <span className="text-[6px] lg:text-[8px] text-orange-400 font-black uppercase tracking-tight">Velocity Limit</span>
+                                                        <span className="text-[8px] lg:text-[10px] text-orange-400 font-mono font-bold">{speed}%</span>
+                                                    </div>
+                                                    <div className="relative w-full h-5 lg:h-6 bg-black/60 border border-orange-500/30 rounded-full p-0.5 overflow-hidden shadow-2xl flex items-center">
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="100"
+                                                            step="5"
+                                                            value={speed}
+                                                            onChange={(e) => setSpeed(parseInt(e.target.value))}
+                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-10"
+                                                            style={{ WebkitAppearance: 'none', appearance: 'none', width: '100%', height: '100%' }}
+                                                        />
+                                                        <div
+                                                            className="h-full bg-gradient-to-r from-orange-700 to-orange-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                                                            style={{ width: `${speed}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-[6px] lg:text-[7px] text-orange-500 uppercase font-black mt-1">Sensitivity Control</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="relative w-6 lg:w-6 h-24 lg:h-32 ml-2 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible">
+                                                <div ref={sliderRef} style={{ touchAction: 'none', userSelect: 'none' }}
+                                                    onPointerDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.currentTarget.setPointerCapture(e.pointerId);
+                                                        setIsDraggingSlider(true);
                                                         hasTriggeredAction.current = false;
-                                                    }, 500);
-                                                }
-                                            }
-                                        }}
-                                        onPointerUp={() => {
-                                            setIsDraggingSlider(false);
-                                            setYPos(0);
-                                            hasTriggeredAction.current = false;
-                                        }}
-                                        onPointerCancel={() => {
-                                            setIsDraggingSlider(false);
-                                            setYPos(0);
-                                            hasTriggeredAction.current = false;
-                                        }}
-                                        className="relative w-full h-full flex items-center justify-center select-none"
-                                    >
-                                        <div className="absolute top-2 text-[5px] lg:text-[7px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
-                                        <div className="absolute bottom-2 text-[5px] lg:text-[7px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
-                                        <div className="w-full h-0.5 bg-white/10 absolute" />
-                                        <div
-                                            className={`absolute w-8 h-8 lg:w-12 lg:h-12 flex items-center justify-center shadow-2xl transition-all duration-150 animate-pulse
+                                                    }}
+                                                    onPointerMove={(e) => {
+                                                        if (!isDraggingSlider || !sliderRef.current) return;
+                                                        const rect = sliderRef.current.getBoundingClientRect();
+                                                        const clientY = e.nativeEvent.clientY || e.clientY;
+                                                        let dy = clientY - (rect.top + rect.height / 2);
+                                                        const maxRange = rect.height / 2 - 10;
+                                                        dy = Math.max(-maxRange, Math.min(maxRange, dy));
+                                                        setYPos(dy);
+                                                        const threshold = maxRange * 0.7;
+                                                        if (!hasTriggeredAction.current) {
+                                                            if (dy <= -threshold) {
+                                                                activeKeys.current.add("arm");
+                                                                if (navigator.vibrate) navigator.vibrate(50);
+                                                                hasTriggeredAction.current = true;
+                                                                setTimeout(() => activeKeys.current.delete("arm"), 500);
+                                                            } else if (dy >= threshold) {
+                                                                activeKeys.current.delete("arm");
+                                                                activeKeys.current.add("land");
+                                                                if (navigator.vibrate) navigator.vibrate(50);
+                                                                hasTriggeredAction.current = true;
+                                                                setTimeout(() => {
+                                                                    activeKeys.current.delete("land");
+                                                                    hasTriggeredAction.current = false;
+                                                                }, 500);
+                                                            }
+                                                        }
+                                                    }}
+                                                    onPointerUp={() => {
+                                                        setIsDraggingSlider(false);
+                                                        setYPos(0);
+                                                        hasTriggeredAction.current = false;
+                                                    }}
+                                                    onPointerCancel={() => {
+                                                        setIsDraggingSlider(false);
+                                                        setYPos(0);
+                                                        hasTriggeredAction.current = false;
+                                                    }}
+                                                    className="relative w-full h-full flex items-center justify-center select-none"
+                                                >
+                                                    <div className="absolute top-2 text-[5px] lg:text-[7px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
+                                                    <div className="absolute bottom-2 text-[5px] lg:text-[7px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
+                                                    <div className="w-full h-0.5 bg-white/10 absolute" />
+                                                    <div
+                                                        className={`absolute w-5 h-5 lg:w-12 lg:h-12 flex items-center justify-center shadow-2xl transition-all duration-150 animate-pulse
                             ${(isArmedFromTel || yPos < -20)
-                                                    ? "bg-emerald-500 rounded-md shadow-[0_0_20px_#10b981]"
-                                                    : (yPos > 20)
-                                                        ? "bg-orange-500 rounded-full shadow-[0_0_20px_#f97316]"
-                                                        : "bg-purple-600 shadow-[0_0_20px_#9333ea]"
-                                                }`}
-                                            style={{
-                                                transform: `translateY(${yPos}px)`,
-                                                clipPath: (isArmedFromTel || yPos < -20 || yPos > 20)
-                                                    ? "none"
-                                                    : "polygon(50% 0%, 0% 100%, 100% 100%)"
-                                            }}
-                                        >
-                                            {(isArmedFromTel || yPos < -20) ? <Power size={14} className="text-black" /> :
-                                                (yPos > 20) ? <ArrowDownToLine size={14} className="text-black" /> :
-                                                    <Circle size={6} className="text-white mt-1" fill="white" />}
+                                                                ? "bg-emerald-500 rounded-md shadow-[0_0_20px_#10b981]"
+                                                                : (yPos > 20)
+                                                                    ? "bg-orange-500 rounded-full shadow-[0_0_20px_#f97316]"
+                                                                    : "bg-purple-600 shadow-[0_0_20px_#9333ea]"
+                                                            }`}
+                                                        style={{
+                                                            transform: `translateY(${yPos}px)`,
+                                                            clipPath: (isArmedFromTel || yPos < -20 || yPos > 20)
+                                                                ? "none"
+                                                                : "polygon(50% 0%, 0% 100%, 100% 100%)"
+                                                        }}
+                                                    >
+                                                        {(isArmedFromTel || yPos < -20) ? <Power size={8} className="text-black" /> :
+                                                            (yPos > 20) ? <ArrowDownToLine size={8} className="text-black" /> :
+                                                                <Circle size={6} className="text-white mt-1" fill="white" />}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* --- MAIN CONTENT AREA --- */}
-                        <div className="flex-1 relative overflow-hidden">
+                                    {/* --- MAIN CONTENT AREA --- */}
+                                    <div className="flex-1 relative overflow-hidden">
 
-                            {/* IF AUTONOMOUS: FULL SCREEN MAP */}
-                            {isAutonomous ? (
-                                <div className="absolute inset-0 z-0">
-                                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}
-                                            className="flex items-center gap-2 px-4 py-2 bg-black/60 border border-white/20 rounded-full text-emerald-300 hover:bg-black/80 transition pointer-events-auto"
-                                        >
-                                            {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-                                            <span className="text-[10px] uppercase tracking-[0.24em] font-black">
-                                                {isDarkMode ? 'Light' : 'Dark'} Mode
-                                            </span>
-                                        </button>
-                                    </div>
-                                    {targetPos && (
-                                        <div style={{ position: 'absolute', top: '4rem', right: isRightBarOpen ? '18rem' : '3rem', zIndex: 1000 }} className="pointer-events-auto">
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleClearTarget(); }}
-                                                className={`flex items-center gap-2 px-1 py-2 rounded-full transition ${isDarkMode ? 'bg-white/10 border border-white/60 text-white hover:bg-white/20' : 'bg-black border border-black/70 text-white hover:bg-black/80'}`}
-                                            >
-                                                <X size={16} />
-                                                <span className="text-[8px] uppercase tracking-[0.24em] font-black">Clear Marker</span>
-                                            </button>
-                                        </div>
-                                    )}
-                                    <MapContainer center={position} zoom={16} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
-                                        <TileLayer url={mapTiles} />
-                                        <MapClickHandler onTargetClear={handleClearTarget} />
-                                        <Marker position={position} key={`drone-auto-${lat}-${lon}`} />
-                                        {targetPos && (
+                                        {/* IF AUTONOMOUS: FULL SCREEN MAP */}
+                                        {isAutonomous ? (
+                                            <div className="absolute inset-0 z-0">
+                                                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-black/60 border border-white/20 rounded-full text-emerald-300 hover:bg-black/80 transition pointer-events-auto"
+                                                    >
+                                                        {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+                                                        <span className="text-[10px] uppercase tracking-[0.24em] font-black">
+                                                            {isDarkMode ? 'Light' : 'Dark'} Mode
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                                {targetPos && (
+                                                    <div style={{ position: 'absolute', top: '4rem', right: isRightBarOpen ? '12rem' : '3rem', zIndex: 1000 }} className="pointer-events-auto">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleClearTarget(); }}
+                                                            className={`flex items-center gap-1 px-1 py-1 rounded-full transition ${isDarkMode ? 'bg-white/10 border border-white/60 text-white hover:bg-white/20' : 'bg-black border border-black/70 text-white hover:bg-black/80'}`}
+                                                        >
+                                                            <X size={10} />
+                                                            <span className="text-[6px]  tracking-[0.24em] font-black">Clear</span>
+
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <MapContainer center={position} zoom={16} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
+                                                    <TileLayer url={mapTiles} />
+                                                    <MapClickHandler onTargetClear={handleClearTarget} />
+                                                    <Marker position={position} key={`drone-auto-${lat}-${lon}`} />
+                                                    {targetPos && (
+                                                        <>
+                                                            <Marker position={targetPos} icon={createColoredIcon(targetColor)} />
+                                                            <Polyline positions={[position, targetPos]} color={targetColor} weight={2} dashArray="5, 10" />
+                                                        </>
+                                                    )}
+                                                    <RecenterMap coords={position} />
+                                                </MapContainer>
+                                            </div>
+                                        ) : (
+                                            /* --- ORIGINAL MANUAL MODE FPV + HUD CODE --- */
                                             <>
-                                                <Marker position={targetPos} icon={createColoredIcon(targetColor)} />
-                                                <Polyline positions={[position, targetPos]} color={targetColor} weight={2} dashArray="5, 10" />
+                                                {/* Your existing FPV placeholder, Joysticks, and small Map code here */}
                                             </>
                                         )}
-                                        <RecenterMap coords={position} />
-                                    </MapContainer>
+                                    </div>
                                 </div>
-                            ) : (
-                                /* --- ORIGINAL MANUAL MODE FPV + HUD CODE --- */
-                                <>
-                                    {/* Your existing FPV placeholder, Joysticks, and small Map code here */}
-                                </>
-                            )}
-                        </div>
+                            ) :
+                                (
+                                    <div className="h-[100dvh] w-full bg-black flex flex-col overflow-hidden relative">
+                                        {/* --- SHARED HEADER --- */}
+                                        <header onPointerDown={(e) => e.preventDefault()} className="w-full py-1 lg:py-3 flex flex-col items-center bg-black/60 backdrop-blur-md border-b border-white/10 z-[110] pointer-events-auto select-none">
+                                            <div className="flex flex-row items-center justify-center gap-3 lg:gap-8 w-full px-4">
+                                                {targetPos && (
+                                                    <div className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-mono leading-tight border-l-2 border-emerald-500/50 pl-2 animate-pulse hidden md:block">
+                                                        <p className="text-[6px] lg:text-[8px] uppercase opacity-50 font-black tracking-tighter">Target Lock</p>
+                                                        <p className="text-[8px] lg:text-[11px] font-bold">LA: {targetPos[0].toFixed(10)}</p>
+                                                        <p className="text-[8px] lg:text-[11px] font-bold">LO: {targetPos[1].toFixed(10)}</p>
+                                                    </div>
+                                                )}
+
+                                                {/* DUAL MODE TOGGLE */}
+                                                <div onPointerDown={(e) => e.preventDefault()} className="flex flex-col items-center gap-1 select-none">
+                                                    <span className={`text-[6px] lg:text-[7px] font-black uppercase tracking-tighter transition-colors ${isAutonomous ? 'text-purple-400' : 'text-emerald-400'}`}>
+                                                        {isAutonomous ? 'Autonomous' : 'Manual'}
+                                                    </span>
+                                                    <button
+                                                        onPointerDown={(e) => e.preventDefault()}
+                                                        onClick={() => setIsAutonomous(!isAutonomous)}
+                                                        className={`relative w-10 lg:w-12 h-5 lg:h-6 rounded-full border transition-all duration-300 select-none ${isAutonomous ? 'bg-purple-900/30 border-purple-500/50' : 'bg-emerald-900/30 border-emerald-500/50'}`}
+                                                    >
+                                                        <div className={`absolute top-1/2 -translate-y-1/2 size-3 lg:size-4 rounded-full transition-all duration-300 flex items-center justify-center ${isAutonomous ? 'left-[calc(100%-16px)] lg:left-[calc(100%-20px)] bg-purple-500 shadow-[0_0_10px_#a855f7]' : 'left-1 bg-emerald-500 shadow-[0_0_10px_#10b981]'}`}>
+                                                            {isAutonomous ? <Rocket size={8} className="text-black" /> : <ShieldAlert size={8} className="text-black" />}
+                                                        </div>
+                                                    </button>
+                                                </div>
+
+                                                <div className="flex gap-3 lg:gap-6">
+                                                    {[{ label: 'R', val: tel?.motors?.[0] }, { label: 'P', val: tel?.motors?.[1] }].map((item, i) => (
+                                                        <div key={i} className="flex flex-col items-center">
+                                                            <span className="text-[7px] lg:text-[9px] text-gray-400 font-bold uppercase">{item.label}</span>
+                                                            <span className="text-sm lg:text-lg font-mono font-black text-pink-500">{item.val || 1500}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <h1 className="text-emerald-400 font-black tracking-[0.2em] lg:tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow px-2">Panda Console</h1>
+
+                                                <div className="flex gap-3 lg:gap-6">
+                                                    {[{ label: 'Y', val: tel?.motors?.[2] }, { label: 'T', val: tel?.motors?.[3] }].map((item, i) => (
+                                                        <div key={i} className="flex flex-col items-center">
+                                                            <span className="text-[7px] lg:text-[9px] text-gray-400 font-bold uppercase">{item.label}</span>
+                                                            <span className="text-sm lg:text-lg font-mono font-black text-pink-500">{item.val || 1500}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                            </div>
+                                            <div className="absolute right-4 top-4 size-3 lg:size-4 rounded-full shadow-lg" style={{ backgroundColor: droneOnline ? '#10b981' : '#dc2626' }} />
+                                            {missionExecuted && (
+                                                <div className="absolute right-16 top-3 z-[120] bg-black/70 border border-emerald-500/30 rounded-full px-2 py-1 text-[8px] sm:text-[10px] uppercase text-emerald-300 font-black">
+                                                    MISSION EXECUTED
+                                                </div>
+                                            )}
+                                            {/* SATELLITE BAR */}
+                                            <div className={`flex items-center gap-1.5 mt-1 font-black font-mono text-[10px] lg:text-base uppercase ${!droneOnline ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
+                                                <Satellite size={isMobile ? 12 : 16} /> {droneOnline ? satCount : 0} Satellites
+                                            </div>
+                                        </header>
+
+
+
+                                        {/* --- LEFT SIDEBAR --- */}
+                                        <div className={`absolute left-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center select-none ${isLeftBarOpen ? 'translate-x-0' : '-translate-x-32'}`}>
+                                            <div className="w-60 h-[95%] bg-black/1 backdrop-blur-sm border-r border-white/10 rounded-r-3xl p-2">
+                                                <p className="text-[12px] text-gray-500 uppercase font-bold tracking-tighter">Mission Params</p>
+                                                {/* Empty for now */}
+                                            </div>
+                                            <button onClick={() => setIsLeftBarOpen(!isLeftBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-r-lg text-emerald-500 ml-[-1px]">
+                                                <ArrowRight size={16} className={`transition-transform ${isLeftBarOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                        </div>
+
+
+                                        {/* --- RIGHT SIDEBAR --- */}
+                                        <div className={`absolute right-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center flex-row-reverse select-none ${isRightBarOpen ? 'translate-x-0' : 'translate-x-44'}`}>
+                                            <div className="w-75 h-[95%] bg-black/1 backdrop-blur-sm border-l border-white/10 rounded-l-3xl p-2 flex flex-col justify-between">
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter text-right">Navigation Data</p>
+                                                </div>
+
+                                                {/* BOTTOM EXECUTE BAR */}
+                                                <div className="flex flex-col gap-1 pb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1 bg-black/30 border border-emerald-500/30 rounded-lg px-1.5 py-0.5 sm:px-1 sm:py-0.5">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="lat, lon"
+                                                                className={`w-full bg-transparent border-none text-[8px] sm:text-[9px] font-mono focus:ring-0 outline-none ${isDarkMode ? 'text-emerald-400 placeholder:text-emerald-400' : 'text-black placeholder:text-slate-600'}`}
+                                                                value={coordInput}
+                                                                onChange={(e) => setCoordInput(e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const coords = coordInput.split(',').map(c => parseFloat(c.trim()));
+                                                                if (coords.length === 2 && !isNaN(coords[0])) {
+                                                                    const parsed = [coords[0], coords[1]];
+                                                                    addMarkerPoint(parsed);
+                                                                    setCoordInput("");
+                                                                }
+                                                            }}
+                                                            className="bg-emerald-600 text-black font-black text-[7px] sm:text-[12px] px-3 py-2 rounded-lg active:scale-95 transition-all"
+                                                        >
+                                                            Confirm
+                                                        </button>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (!markerPoints.length) return;
+                                                            handleMissionExecute();
+                                                            setMissionExecuted(true);
+                                                            setTimeout(() => setMissionExecuted(false), 5000);
+                                                        }}
+                                                        disabled={!markerPoints.length}
+                                                        className={`w-full text-black font-black text-[12px] sm:text-[12] py-2 rounded-lg active:scale-95 transition-all ${markerPoints.length ? 'bg-purple-600' : 'bg-slate-400 cursor-not-allowed'}`}
+                                                    >
+                                                        EXECUTE
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => setIsRightBarOpen(!isRightBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-l-lg text-emerald-500 mr-[-1px]">
+                                                <ArrowRight size={16} className={`transition-transform ${isRightBarOpen ? '' : 'rotate-180'}`} />
+                                            </button>
+                                        </div>
+
+                                        {/* Arm land slide bar */}
+                                        {/* Velocit Limit slide bar */}
+                                        <div className="absolute left-1/2 bottom-2 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-lg px-2">
+                                            <div className="mx-auto flex w-full items-center justify-center gap-2">
+                                                <div className="flex-none w-[300px] h-[100px] select-none mt-12">
+                                                    <div className="flex flex-col gap-0.5 w-full justify-end items-center">
+                                                        <div className="flex justify-between w-full px-1 mb-0.5">
+                                                            <span className="text-[6px] lg:text-[10px] text-orange-400 font-black uppercase tracking-tight">Velocity Limit</span>
+                                                            <span className="text-[8px] lg:text-[12px] text-orange-400 font-mono font-bold">{speed}%</span>
+                                                        </div>
+                                                        <div className="relative w-full lg:h-8 bg-black/60 border border-orange-500/30 rounded-full p-0.5 overflow-hidden shadow-2xl flex items-center">
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="100"
+                                                                step="5"
+                                                                value={speed}
+                                                                onChange={(e) => setSpeed(parseInt(e.target.value))}
+                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-10"
+                                                                style={{ WebkitAppearance: 'none', appearance: 'none', width: '100%', height: '100%' }}
+                                                            />
+                                                            <div
+                                                                className="h-full bg-gradient-to-r from-orange-700 to-orange-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                                                                style={{ width: `${speed}%` }}
+                                                            />
+                                                        </div>
+                                                        <p className="text-[9px] lg:text-10px] text-orange-500 uppercase font-black mt-1">Sensitivity Control</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative w-6 lg:w-11 h-2 lg:h-50 ml-10 mb-4 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible">
+                                                    <div ref={sliderRef} style={{ touchAction: 'none', userSelect: 'none' }}
+                                                        onPointerDown={(e) => {
+                                                            e.preventDefault();
+                                                            e.currentTarget.setPointerCapture(e.pointerId);
+                                                            setIsDraggingSlider(true);
+                                                            hasTriggeredAction.current = false;
+                                                        }}
+                                                        onPointerMove={(e) => {
+                                                            if (!isDraggingSlider || !sliderRef.current) return;
+                                                            const rect = sliderRef.current.getBoundingClientRect();
+                                                            const clientY = e.nativeEvent.clientY || e.clientY;
+                                                            let dy = clientY - (rect.top + rect.height / 2);
+                                                            const maxRange = rect.height / 2 - 10;
+                                                            dy = Math.max(-maxRange, Math.min(maxRange, dy));
+                                                            setYPos(dy);
+                                                            const threshold = maxRange * 0.7;
+                                                            if (!hasTriggeredAction.current) {
+                                                                if (dy <= -threshold) {
+                                                                    activeKeys.current.add("arm");
+                                                                    if (navigator.vibrate) navigator.vibrate(50);
+                                                                    hasTriggeredAction.current = true;
+                                                                    setTimeout(() => activeKeys.current.delete("arm"), 500);
+                                                                } else if (dy >= threshold) {
+                                                                    activeKeys.current.delete("arm");
+                                                                    activeKeys.current.add("land");
+                                                                    if (navigator.vibrate) navigator.vibrate(50);
+                                                                    hasTriggeredAction.current = true;
+                                                                    setTimeout(() => {
+                                                                        activeKeys.current.delete("land");
+                                                                        hasTriggeredAction.current = false;
+                                                                    }, 500);
+                                                                }
+                                                            }
+                                                        }}
+                                                        onPointerUp={() => {
+                                                            setIsDraggingSlider(false);
+                                                            setYPos(0);
+                                                            hasTriggeredAction.current = false;
+                                                        }}
+                                                        onPointerCancel={() => {
+                                                            setIsDraggingSlider(false);
+                                                            setYPos(0);
+                                                            hasTriggeredAction.current = false;
+                                                        }}
+                                                        className="relative w-full h-full flex items-center justify-center select-none"
+                                                    >
+                                                        <div className="absolute top-2 text-[5px] lg:text-[7px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
+                                                        <div className="absolute bottom-2 text-[5px] lg:text-[7px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
+                                                        <div className="w-full h-0.5 bg-white/10 absolute" />
+                                                        <div
+                                                            className={`absolute w-5 h-5 lg:w-10 lg:h-10 flex items-center justify-center shadow-2xl transition-all duration-150 animate-pulse
+                            ${(isArmedFromTel || yPos < -20)
+                                                                    ? "bg-emerald-500 rounded-md shadow-[0_0_20px_#10b981]"
+                                                                    : (yPos > 20)
+                                                                        ? "bg-orange-500 rounded-full shadow-[0_0_20px_#f97316]"
+                                                                        : "bg-purple-600 shadow-[0_0_20px_#9333ea]"
+                                                                }`}
+                                                            style={{
+                                                                transform: `translateY(${yPos}px)`,
+                                                                clipPath: (isArmedFromTel || yPos < -20 || yPos > 20)
+                                                                    ? "none"
+                                                                    : "polygon(50% 0%, 0% 100%, 100% 100%)"
+                                                            }}
+                                                        >
+                                                            {(isArmedFromTel || yPos < -20) ? <Power size={10} className="text-black" /> :
+                                                                (yPos > 20) ? <ArrowDownToLine size={12} className="text-black" /> :
+                                                                    <Circle size={10} className="text-white mt-1" fill="white" />}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* --- MAIN CONTENT AREA --- */}
+                                        <div className="flex-1 relative overflow-hidden">
+
+                                            {/* IF AUTONOMOUS: FULL SCREEN MAP */}
+                                            {isAutonomous ? (
+                                                <div className="absolute inset-0 z-0">
+                                                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}
+                                                            className="flex items-center gap-2 px-4 py-2 bg-black/60 border border-white/20 rounded-full text-emerald-300 hover:bg-black/80 transition pointer-events-auto"
+                                                        >
+                                                            {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+                                                            <span className="text-[10px] uppercase tracking-[0.24em] font-black">
+                                                                {isDarkMode ? 'Light' : 'Dark'} Mode
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                    {targetPos && (
+                                                        <div style={{ position: 'absolute', top: '4rem', right: isRightBarOpen ? '20rem' : '9em', zIndex: 1000 }} className="pointer-events-auto">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleClearTarget(); }}
+                                                                className={`flex items-center gap-1 px-2 py-2 rounded-full transition-transform ${isDarkMode ? 'bg-white/10 border border-white/60 text-white hover:bg-white/20' : 'bg-black border border-black/70 text-white hover:bg-black/80'}`}
+                                                            >
+                                                                <X size={10} />
+                                                                <span className="text-[12px]  tracking-[0.24em] font-black">Clear Marker</span>
+
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <MapContainer center={position} zoom={16} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
+                                                        <TileLayer url={mapTiles} />
+                                                        <MapClickHandler onTargetClear={handleClearTarget} />
+                                                        <Marker position={position} key={`drone-auto-${lat}-${lon}`} />
+                                                        {targetPos && (
+                                                            <>
+                                                                <Marker position={targetPos} icon={createColoredIcon(targetColor)} />
+                                                                <Polyline positions={[position, targetPos]} color={targetColor} weight={2} dashArray="5, 10" />
+                                                            </>
+                                                        )}
+                                                        <RecenterMap coords={position} />
+                                                    </MapContainer>
+                                                </div>
+                                            ) : (
+                                                /* --- ORIGINAL MANUAL MODE FPV + HUD CODE --- */
+                                                <>
+                                                    {/* Your existing FPV placeholder, Joysticks, and small Map code here */}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                        }
                     </div>
                 )
+
+
                 : (
 
                     < div className="h-[100dvh] w-full bg-black flex flex-col items-center touch-none overflow-hidden select-none relative" style={{ touchAction: 'none' }}>
@@ -1103,7 +1398,7 @@ export const MessagetestPage = () => {
                                             setTimeout(() => setMissionExecuted(false), 5000);
                                         }}
                                         disabled={!markerPoints.length}
-                                        className={`font-black text-[9px] sm:text-[10px] px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition ${markerPoints.length ? 'bg-emerald-600 text-black' : 'bg-slate-400 text-slate-700 cursor-not-allowed'}`}
+                                        className={`font-black text-[9px] sm:text-[10px] px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition ${markerPoints.length ? 'bg-emerald-600 text-black' : 'bg-slate-400 text-slate-700 cursor-not-allowed'}`}
                                     >
                                         EXECUTE
                                     </button>
@@ -1123,6 +1418,6 @@ export const MessagetestPage = () => {
                     </div >
                 )
             }
-        </div>
+        </div >
     );
 };
