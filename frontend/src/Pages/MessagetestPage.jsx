@@ -165,7 +165,7 @@ export const MessagetestPage = () => {
         }
     }, [isGpsLocked, hasInitialGpsAutoSwitch]);
 
-    
+
 
     const getRandomColor = () => {
         const colors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#22d3ee', '#818cf8', '#c084fc', '#f472b6', '#10b981'];
@@ -336,14 +336,14 @@ export const MessagetestPage = () => {
     };
 
     const handleForceDisarm = () => socket?.emit('user-message', { commands: ["force_disarm"], altitude });
-    const handleTakeoff5m = () => socket?.emit('user-message', { commands: ["fly"]});
+    const handleTakeoff5m = () => socket?.emit('user-message', { commands: ["fly"] });
     const handleMissionExecute = () => {
         if (!markerPoints.length) {
             console.log("No marker selected. Marker array is empty.");
             return null;
         }
-        else{
-            socket?.emit('user-message', { commands: ["execute"]});
+        else {
+            socket?.emit('user-message', { commands: ["execute"] });
         }
     }
     return (
@@ -417,8 +417,8 @@ export const MessagetestPage = () => {
 
 
                                     {/* --- LEFT SIDEBAR --- */}
-                                    <div className={`absolute left-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center select-none ${isLeftBarOpen ? 'translate-x-0' : '-translate-x-32'}`}>
-                                        <div className="w-32 h-[95%] bg-black/1 backdrop-blur-sm border-r border-white/10 rounded-r-3xl p-2">
+                                    <div className={`absolute left-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center select-none ${isLeftBarOpen ? 'translate-x-0' : '-translate-x-44'}`}>
+                                        <div className="w-44 h-[95%] bg-black/1 backdrop-blur-sm border-r border-white/10 rounded-r-3xl p-2">
                                             <p className="text-[6px] text-gray-500 uppercase font-bold tracking-tighter">Mission Params</p>
                                             {/* Empty for now */}
                                         </div>
@@ -482,10 +482,21 @@ export const MessagetestPage = () => {
 
                                     {/* Arm land slide bar */}
                                     {/* Velocit Limit slide bar */}
-                                    <div className="absolute left-1/2 bottom-2 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-lg px-2">
-                                        <div className="mx-auto flex w-full items-center justify-center gap-2">
-                                            <div className="flex-none w-[160px] select-none mt-12">
+                                    <div className="absolute left-1/2 bottom-2 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-2xl px-2">
+                                        <div className="mx-auto flex w-full items-end justify-center gap-4 lg:gap-8">
+                                            {/* ALTITUDE BAR */}
+                                            <div className="flex flex-col items-center pointer-events-auto mb-4">
+                                                <span className="text-[10px] text-blue-400 font-black font-mono">{altitude}m</span>
+                                                <p className="text-[8px] lg:text-[10px] text-blue-500 uppercase font-black mb-1">Alt</p>
+                                                <div className="relative w-6 h-24 lg:w-8 lg:h-32 bg-black/60 border border-blue-500/30 rounded-full flex flex-col-reverse p-0.5 overflow-hidden shadow-2xl">
+                                                    <input type="range" min="0" max="20" step="1" value={altitude} onChange={(e) => setAltitude(parseInt(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full appearance-none" style={{ WebkitAppearance: 'slider-vertical' }} />
+                                                    <div className="w-full bg-gradient-to-t from-blue-700 to-blue-400 rounded-full transition-all duration-300" style={{ height: `${(altitude / 20) * 100}%` }} />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-none w-[160px] select-none mt-12 mb-4">
                                                 <div className="flex flex-col gap-0.5 w-full justify-end items-center">
+                                                    <p className="text-[6px] lg:text-[7px] text-orange-500 uppercase font-black mb-1">Sensitivity Control</p>
                                                     <div className="flex justify-between w-full px-1 mb-0.5">
                                                         <span className="text-[6px] lg:text-[8px] text-orange-400 font-black uppercase tracking-tight">Velocity Limit</span>
                                                         <span className="text-[8px] lg:text-[10px] text-orange-400 font-mono font-bold">{speed}%</span>
@@ -506,11 +517,10 @@ export const MessagetestPage = () => {
                                                             style={{ width: `${speed}%` }}
                                                         />
                                                     </div>
-                                                    <p className="text-[6px] lg:text-[7px] text-orange-500 uppercase font-black mt-1">Sensitivity Control</p>
                                                 </div>
                                             </div>
 
-                                            <div className="relative w-6 lg:w-6 h-24 lg:h-32 ml-2 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible">
+                                            <div className="relative w-6 lg:w-8 h-24 lg:h-32 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible mb-4">
                                                 <div ref={sliderRef} style={{ touchAction: 'none', userSelect: 'none' }}
                                                     onPointerDown={(e) => {
                                                         e.preventDefault();
@@ -602,7 +612,7 @@ export const MessagetestPage = () => {
                                                     </button>
                                                 </div>
                                                 {targetPos && (
-                                                    <div style={{ position: 'absolute', top: '4rem', right: isRightBarOpen ? '12rem' : '3rem', zIndex: 1000 }} className="pointer-events-auto">
+                                                    <div style={{ position: 'absolute', top: '4rem', right: isRightBarOpen ? '12rem' : '1rem', zIndex: 1000 }} className="pointer-events-auto transition-all duration-500 ease-in-out">
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleClearTarget(); }}
                                                             className={`flex items-center gap-1 px-1 py-1 rounded-full transition ${isDarkMode ? 'bg-white/10 border border-white/60 text-white hover:bg-white/20' : 'bg-black border border-black/70 text-white hover:bg-black/80'}`}
@@ -700,9 +710,9 @@ export const MessagetestPage = () => {
 
 
                                         {/* --- LEFT SIDEBAR --- */}
-                                        <div className={`absolute left-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center select-none ${isLeftBarOpen ? 'translate-x-0' : '-translate-x-32'}`}>
-                                            <div className="w-60 h-[95%] bg-black/1 backdrop-blur-sm border-r border-white/10 rounded-r-3xl p-2">
-                                                <p className="text-[12px] text-gray-500 uppercase font-bold tracking-tighter">Mission Params</p>
+                                        <div className={`absolute left-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center select-none ${isLeftBarOpen ? 'translate-x-0' : '-translate-x-[300px]'}`}>
+                                            <div className="w-75 h-[95%] bg-black/1 backdrop-blur-sm border-r border-white/10 rounded-r-3xl p-2">
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">Mission Params</p>
                                                 {/* Empty for now */}
                                             </div>
                                             <button onClick={() => setIsLeftBarOpen(!isLeftBarOpen)} className="bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-r-lg text-emerald-500 ml-[-1px]">
@@ -712,7 +722,7 @@ export const MessagetestPage = () => {
 
 
                                         {/* --- RIGHT SIDEBAR --- */}
-                                        <div className={`absolute right-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center flex-row-reverse select-none ${isRightBarOpen ? 'translate-x-0' : 'translate-x-44'}`}>
+                                        <div className={`absolute right-0 top-20 lg:top-22 bottom-0 z-10 transition-transform duration-500 flex items-center flex-row-reverse select-none ${isRightBarOpen ? 'translate-x-0' : 'translate-x-[300px]'}`}>
                                             <div className="w-75 h-[95%] bg-black/1 backdrop-blur-sm border-l border-white/10 rounded-l-3xl p-2 flex flex-col justify-between">
                                                 <div className="flex-1">
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter text-right">Navigation Data</p>
@@ -765,10 +775,21 @@ export const MessagetestPage = () => {
 
                                         {/* Arm land slide bar */}
                                         {/* Velocit Limit slide bar */}
-                                        <div className="absolute left-1/2 bottom-2 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-lg px-2">
-                                            <div className="mx-auto flex w-full items-center justify-center gap-2">
-                                                <div className="flex-none w-[300px] h-[100px] select-none mt-12">
+                                        <div className="absolute left-1/2 bottom-2 z-[20] -translate-x-1/2 pointer-events-auto select-none w-full max-w-2xl px-2">
+                                            <div className="mx-auto flex w-full items-end justify-center gap-6">
+                                                {/* ALTITUDE BAR */}
+                                                <div className="flex flex-col items-center pointer-events-auto mb-4">
+                                                    <span className="text-[10px] text-blue-400 font-black font-mono">{altitude}m</span>
+                                                    <p className="text-[8px] lg:text-[10px] text-blue-500 uppercase font-black mb-1">Alt</p>
+                                                    <div className="relative w-6 lg:w-8 h-32 lg:h-40 bg-black/60 border border-blue-500/30 rounded-full flex flex-col-reverse p-0.5 overflow-hidden shadow-2xl">
+                                                        <input type="range" min="0" max="20" step="1" value={altitude} onChange={(e) => setAltitude(parseInt(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer h-full w-full appearance-none" style={{ WebkitAppearance: 'slider-vertical' }} />
+                                                        <div className="w-full bg-gradient-to-t from-blue-700 to-blue-400 rounded-full transition-all duration-300" style={{ height: `${(altitude / 20) * 100}%` }} />
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex-none w-[300px] h-[100px] select-none mt-12 mb-4">
                                                     <div className="flex flex-col gap-0.5 w-full justify-end items-center">
+                                                        <p className="text-[9px] lg:text-[10px] text-orange-500 uppercase font-black mb-1">Sensitivity Control</p>
                                                         <div className="flex justify-between w-full px-1 mb-0.5">
                                                             <span className="text-[6px] lg:text-[10px] text-orange-400 font-black uppercase tracking-tight">Velocity Limit</span>
                                                             <span className="text-[8px] lg:text-[12px] text-orange-400 font-mono font-bold">{speed}%</span>
@@ -789,11 +810,10 @@ export const MessagetestPage = () => {
                                                                 style={{ width: `${speed}%` }}
                                                             />
                                                         </div>
-                                                        <p className="text-[9px] lg:text-10px] text-orange-500 uppercase font-black mt-1">Sensitivity Control</p>
                                                     </div>
                                                 </div>
 
-                                                <div className="relative w-6 lg:w-11 h-2 lg:h-50 ml-10 mb-4 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible">
+                                                <div className="relative w-6 lg:w-11 h-32 lg:h-50 ml-10 mb-4 bg-black/60 rounded-3xl border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-xl overflow-visible">
                                                     <div ref={sliderRef} style={{ touchAction: 'none', userSelect: 'none' }}
                                                         onPointerDown={(e) => {
                                                             e.preventDefault();
@@ -885,7 +905,7 @@ export const MessagetestPage = () => {
                                                         </button>
                                                     </div>
                                                     {targetPos && (
-                                                        <div style={{ position: 'absolute', top: '4rem', right: isRightBarOpen ? '20rem' : '9em', zIndex: 1000 }} className="pointer-events-auto">
+                                                        <div style={{ position: 'absolute', top: '4rem', right: isRightBarOpen ? '20rem' : '1rem', zIndex: 1000 }} className="pointer-events-auto transition-all duration-500 ease-in-out">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handleClearTarget(); }}
                                                                 className={`flex items-center gap-1 px-2 py-2 rounded-full transition-transform ${isDarkMode ? 'bg-white/10 border border-white/60 text-white hover:bg-white/20' : 'bg-black border border-black/70 text-white hover:bg-black/80'}`}
