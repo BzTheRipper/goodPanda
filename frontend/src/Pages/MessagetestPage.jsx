@@ -328,6 +328,7 @@ export const MessagetestPage = () => {
                         {/* LEFT SIDEBAR */}
                         <div className={`absolute left-0 top-0 bottom-0 z-20 transition-transform duration-500 flex items-center select-none ${isLeftBarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                             <div className="w-44 lg:w-75 h-[95%] bg-black/20 backdrop-blur-sm border-r border-white/10 rounded-r-3xl p-2">
+
                                 {/* --- ADDED GRIPPER CONTROLS --- */}
                                 <div className="mt-6 flex flex-col gap-3 px-2">
                                     <label className="text-[8px] text-emerald-500/50 uppercase font-black">Gripper Control</label>
@@ -352,6 +353,7 @@ export const MessagetestPage = () => {
                                         CLOSE (1100)
                                     </button>
                                 </div>
+
                                 <p className="text-[10px] text-gray-500 uppercase font-bold">Mission Params</p>
                             </div>
                             <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsLeftBarOpen(!isLeftBarOpen); }} className="absolute left-full bg-black/60 backdrop-blur-md border border-white/10 p-1.5 rounded-r-lg text-emerald-500 z-[1002] pointer-events-auto"><ArrowRight size={16} className={`transition-transform ${isLeftBarOpen ? 'rotate-180' : ''}`} /></button>

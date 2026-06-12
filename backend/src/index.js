@@ -45,7 +45,7 @@ io.on("connection", async (connectedClient) => {
     try {
       const user = await User.findById(userId);
       if (user) {
-        console.log(`✅ User ${user.fullname} connected`);
+        //console.log(`✅ User ${user.fullname} connected`);
         connectedClient.user = user;
       }
       else {
@@ -72,6 +72,11 @@ io.on("connection", async (connectedClient) => {
       name: senderName,
       theTelMessage: telMessage // This wraps it for the React state
     });
+  });
+
+  connectedClient.on("mav-log", (data) => {
+    // Relay the Pixhawk internal message to the Pilot's Web UI
+    io.emit("pixhawk-feedback", data); 
   });
 
 
