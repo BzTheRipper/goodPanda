@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { useAuthState } from '../Store/useAuthStore';
 import {
-    Power, Circle, ShieldAlert, ExternalLink, X, Maximize2, Rocket, Signal, Sun, Moon, Satellite, ArrowRight, ArrowDownToLine
+    Power, Circle, ShieldAlert, ExternalLink, X, Maximize2, Rocket, Signal, Sun, Moon, Satellite, User, ArrowRight, ArrowDownToLine
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useNavigate } from 'react-router-dom';
+
+
 
 // --- LEAFLET ASSET FIX ---
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -65,7 +68,7 @@ const Joystick = memo(({ onMove }) => {
 });
 
 export const MessagetestPage = () => {
-    const { socket } = useAuthState();
+    const { socket, authUser } = useAuthState();
 
     // --- STATES ---
     const [isStarted, setIsStarted] = useState(false);
@@ -104,6 +107,8 @@ export const MessagetestPage = () => {
     const [yPos, setYPos] = useState(0);
     const lastEmitTime = useRef(Date.now());
     const logEndRef = useRef(null);
+
+    const navigate = useNavigate();
 
     const handleClearTarget = useCallback(() => {
         setTargetPos(null);
@@ -434,7 +439,32 @@ export const MessagetestPage = () => {
                     </div>
                     <div className="absolute inset-0 z-10 flex flex-col pointer-events-auto">
                         <header className="w-full py-1 lg:py-3 flex flex-col items-center bg-black/40 backdrop-blur-md border-b border-white/10 relative">
+
                             <div className="flex flex-row items-center justify-center gap-3 lg:gap-8 w-full px-4 relative">
+                                <div>
+                                    {authUser ? (
+                                        <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm">
+                                            <div className="w-6 h-6 rounded-full bg-purple-900 flex items-center justify-center text-[10px] font-semibold text-purple-300 shrink-0">
+                                                {authUser.fullname?.slice(0, 2).toUpperCase() ?? 'U'}
+                                            </div>
+                                            <span className="text-xs font-medium text-white/80 leading-none">
+                                                {authUser.fullname ?? 'Pilot'}
+                                            </span>
+                                            <ChevronDown size={11} className="text-white/40" />
+                                        </div>
+                                    ) : (
+                                        <div
+                                            onClick={() => navigate('/login')}
+                                            className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm cursor-pointer hover:border-white/20 transition-colors"
+                                        >
+                                            <div className="w-6 h-6 rounded-full border border-dashed border-white/20 flex items-center justify-center">
+                                                <User size={12} className="text-white/40" />
+                                            </div>
+                                            <span className="text-xs text-white/40 leading-none">Sign in</span>
+                                            <ArrowRight size={11} className="text-white/30" />
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="flex flex-col items-center gap-1">
                                     <span className={`text-[6px] lg:text-[7px] font-black uppercase tracking-tighter transition-colors ${isAutonomous ? 'text-purple-400' : 'text-emerald-400'}`}>{isAutonomous ? 'Autonomous' : 'Manual'}</span>
                                     <button onClick={() => setIsAutonomous(!isAutonomous)} className={`relative w-10 lg:w-12 h-5 lg:h-6 rounded-full border transition-all ${isAutonomous ? 'bg-purple-900/30 border-purple-500/50' : 'bg-emerald-900/30 border-emerald-500/50'}`}><div className={`absolute top-1/2 -translate-y-1/2 size-3 lg:size-4 rounded-full transition-all flex items-center justify-center ${isAutonomous ? 'left-[calc(100%-16px)] lg:left-[calc(100%-20px)] bg-purple-500 shadow-[0_0_10px_#a855f7]' : 'left-1 bg-emerald-500 shadow-[0_0_10px_#10b981]'}`}>{isAutonomous ? <Rocket size={8} /> : <ShieldAlert size={8} />}</div></button>
@@ -458,7 +488,10 @@ export const MessagetestPage = () => {
                         <main className="flex-1 w-full flex flex-row items-end justify-between px-2 pb-2 lg:px-12 lg:pb-12">
                             <div className="flex-1 flex items-center justify-start gap-4 lg:gap-8 pointer-events-auto">
                                 <div className="flex flex-col items-center ml-4 mb-2 lg:ml-10 lg:mb-6"><p className="text-[8px] text-emerald-500/40 uppercase italic tracking-widest font-bold mb-2">Movement</p><Joystick onMove={(dx, dy, r) => { const t = r * 0.3; const d = new Set(); if (dy < -t) d.add("forward"); if (dy > t) d.add("backward"); if (dx < -t) d.add("left"); if (dx > t) d.add("right"); leftJoyDirs.current = d; }} /></div>
-                                <button onClick={handleTakeoff5m} className="size-12 lg:size-22 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center active:scale-90 mb-2 shadow-lg"><Rocket size={5} /><span className="text-[7px] lg:text-[15px] font-black uppercase mt-1 leading-none">Fly</span></button>
+                                <button onClick={handleTakeoff5m}
+                                    className="size-12 lg:size-22 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center active:scale-90 mb-2 shadow-lg">
+                                    <Rocket size={30} />
+                                    <span className="text-[7px] lg:text-[15px] font-black uppercase mt-1 leading-none">Fly</span></button>
                             </div>
                             <div className="flex-none flex flex-row items-end justify-center gap-2 lg:gap-10 mb-2 pointer-events-auto">
                                 <div className="flex flex-col gap-1 w-48 lg:w-80 justify-end items-center">
