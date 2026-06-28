@@ -248,7 +248,7 @@ export const MessagetestPage = () => {
     };
 
     const handleForceDisarm = () => socket?.emit('user-message', { commands: ["force_disarm"], altitude });
-    const handleTakeoff5m = () => socket?.emit('user-message', { commands: ["fly"] });
+    const handleTakeoff1m = () => socket?.emit('user-message', { commands: ["fly"] });
     const handleMissionExecute = () => {
         if (markerPoints.length) {
             activeKeys.current.add("execute");
@@ -488,7 +488,7 @@ export const MessagetestPage = () => {
                         <main className="flex-1 w-full flex flex-row items-end justify-between px-2 pb-2 lg:px-12 lg:pb-12">
                             <div className="flex-1 flex items-center justify-start gap-4 lg:gap-8 pointer-events-auto">
                                 <div className="flex flex-col items-center ml-4 mb-2 lg:ml-10 lg:mb-6"><p className="text-[8px] text-emerald-500/40 uppercase italic tracking-widest font-bold mb-2">Movement</p><Joystick onMove={(dx, dy, r) => { const t = r * 0.3; const d = new Set(); if (dy < -t) d.add("forward"); if (dy > t) d.add("backward"); if (dx < -t) d.add("left"); if (dx > t) d.add("right"); leftJoyDirs.current = d; }} /></div>
-                                <button onClick={handleTakeoff5m}
+                                <button onClick={handleTakeoff1m}
                                     className="size-12 lg:size-22 rounded-full bg-emerald-600/20 border-2 border-emerald-500 text-emerald-400 flex flex-col items-center justify-center active:scale-90 mb-2 shadow-lg">
                                     <Rocket size={30} />
                                     <span className="text-[7px] lg:text-[15px] font-black uppercase mt-1 leading-none">Fly</span></button>
