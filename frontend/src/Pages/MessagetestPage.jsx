@@ -420,6 +420,8 @@ export const MessagetestPage = () => {
                             <p className="text-blue-400"><span className="opacity-40 uppercase">Alt:</span> {gpsData.alt?.toFixed(1) || "0.0"}M</p>
                             <p><span className="opacity-40 uppercase">Spd:</span> {gpsData.vel?.toFixed(1) || "0.0"}M/S</p>
                             <p className={`${gpsStatus.color} font-bold`}><span className="opacity-40 text-emerald-400 uppercase">GPS:</span> {gpsStatus.text}</p>
+                            <p><span className="opacity-40 uppercase">Mag:</span> {tel?.mag.toFixed(1) || 0}</p>
+                            <p><span className="opacity-40 uppercase">Head:</span> {tel?.head.toFixed(1) || 0}</p>
                         </div>
 
                         {/* Battery - Compact version */}
