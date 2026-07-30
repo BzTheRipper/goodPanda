@@ -76,7 +76,7 @@ const Joystick = memo(({ leftSide = true, onMove }) => {
     );
 });
 
-export const MessagetestPage = () => {
+export const PerfectMessageTestPageForMobileJoystick = () => {
     const { socket } = useAuthState();
     const [gotTheMessage, setGotTheMessage] = useState(null);
     const [gotTheTelMessage, setGotTheTelMessage] = useState(null);
@@ -170,7 +170,8 @@ export const MessagetestPage = () => {
                 if (keys.has("arrowdown")) finalCommands.add("down");
                 if (keys.has("arrowleft")) finalCommands.add("rotate_left");
                 if (keys.has("arrowright")) finalCommands.add("rotate_right");
-
+                
+                // adding joystick commands from mobile 
                 leftJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
                 rightJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
 

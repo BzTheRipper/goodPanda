@@ -15,6 +15,7 @@ import { UpdateUninstallLifePage } from './Pages/UpdateUninstallLifePage';
 import {MessagetestPage} from './Pages/MessagetestPage';
 import { CameraStreamTestPage } from './Pages/CameraStreamTestPage';
 import { GPSViewer } from './Pages/GPSViewer';
+import {PerfectMessageTestPageForMobileJoystick} from './Pages/PerfectMessageTestPageForMobileJoystick';
 
 function App() {
 
@@ -113,6 +114,7 @@ function App() {
         <Route path="/cam-test" element={<CameraStreamTestPage />} />
         <Route path="/gps" element={<GPSViewer />} />
         <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/runmanual" element={<PerfectMessageTestPageForMobileJoystick />} />
       </Routes>
     </div>
   )
