@@ -175,6 +175,8 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                 leftJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
                 rightJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
 
+                console.log("Sending Commands: ", Array.from(finalCommands));
+
                 if (finalCommands.size >= 0) {
                     socket.emit("user-message", { commands: Array.from(finalCommands) });
                 }
