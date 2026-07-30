@@ -18,10 +18,10 @@ const Joystick = memo(({ leftSide = true, onMove }) => {
         const rect = baseRef.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        
+
         let dx = e.clientX - centerX;
         let dy = e.clientY - centerY;
-        
+
         const maxRadius = rect.width / 2;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
@@ -63,7 +63,7 @@ const Joystick = memo(({ leftSide = true, onMove }) => {
                     <div className="w-full h-0.5 bg-emerald-500" />
                     <div className="h-full w-0.5 bg-emerald-500 absolute" />
                 </div>
-                
+
                 <div
                     ref={stickRef}
                     className="w-10 h-10 lg:w-14 lg:h-14 rounded-full shadow-2xl flex items-center justify-center bg-[#2dd4bf] pointer-events-none will-change-transform"
@@ -116,12 +116,14 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
             const key = e.key.toLowerCase();
             if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) e.preventDefault();
             activeKeys.current.add(key);
-            if (key === 'k' && socket){
+            if (key === 'k' && socket) {
                 socket.emit('user-message', { commands: ["arm"] });
                 console.log("Sending Commands : ", ["arm"]);
-            } 
-            if (key === 'l' && socket) socket.emit('user-message', { commands: ["land"] });
-            console.log("Sending Commands : ", ["land"]);
+            }
+            if (key === 'l' && socket) {
+                socket.emit('user-message', { commands: ["land"] });
+                console.log("Sending Commands : ", ["land"]);
+            }
         };
         const handleKeyUp = (e) => activeKeys.current.delete(e.key.toLowerCase());
 
@@ -174,7 +176,7 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                 if (keys.has("arrowdown")) finalCommands.add("down");
                 if (keys.has("arrowleft")) finalCommands.add("rotate_left");
                 if (keys.has("arrowright")) finalCommands.add("rotate_right");
-                
+
                 // adding joystick commands from mobile 
                 leftJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
                 rightJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
@@ -199,7 +201,7 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
         const centerY = rect.top + rect.height / 2;
         let dy = e.clientY - centerY;
         const maxRange = rect.height / 2 - 10;
-        
+
         if (dy < -maxRange) dy = -maxRange;
         if (dy > maxRange) dy = maxRange;
         setYPos(dy);
@@ -245,7 +247,7 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
 
     return (
         <div className="h-[100dvh] w-full bg-[#050a05] flex flex-col items-center touch-none overflow-hidden select-none">
-            
+
             {/* ROTATE OVERLAY */}
             {isMobile && (!isLandscape || !isFullScreen) && (
                 <div className="fixed inset-0 z-[100] bg-[#050a05] flex flex-col items-center justify-center text-center p-6 text-white font-bold">
