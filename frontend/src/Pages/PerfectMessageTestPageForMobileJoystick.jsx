@@ -116,8 +116,12 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
             const key = e.key.toLowerCase();
             if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) e.preventDefault();
             activeKeys.current.add(key);
-            if (key === 'k' && socket) socket.emit('user-message', { commands: ["arm"] });
+            if (key === 'k' && socket){
+                socket.emit('user-message', { commands: ["arm"] });
+                console.log("Sending Commands : ", ["arm"]);
+            } 
             if (key === 'l' && socket) socket.emit('user-message', { commands: ["land"] });
+            console.log("Sending Commands : ", ["land"]);
         };
         const handleKeyUp = (e) => activeKeys.current.delete(e.key.toLowerCase());
 
@@ -204,10 +208,12 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
         if (!hasTriggeredAction.current) {
             if (dy < -threshold) {
                 socket?.emit('user-message', { commands: ["arm"] });
+                console.log("Sending Commands : ", ["arm"]);
                 if (navigator.vibrate) navigator.vibrate(50);
                 hasTriggeredAction.current = true;
             } else if (dy > threshold) {
                 socket?.emit('user-message', { commands: ["land"] });
+                console.log("Sending Commands : ", ["land"]);
                 if (navigator.vibrate) navigator.vibrate(50);
                 hasTriggeredAction.current = true;
             }
