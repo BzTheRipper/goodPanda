@@ -185,10 +185,10 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                 // adding joystick commands from mobile 
                 leftJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
                 rightJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
-                
+
 
                 const commandArray = Array.from(finalCommands);
-                console.log(`Sending Commands :  ${commandArray} | ${altitude}`);
+                console.log(`🚀 Sending -> Commands: ${commandArray} | Altitude: ${altitude}m`);
 
                 if (finalCommands.size >= 0) {
                     socket.emit("user-message", { commands: Array.from(finalCommands) });
