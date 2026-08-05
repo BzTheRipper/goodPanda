@@ -112,27 +112,31 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
 
     // --- KEYBOARD ---
     useEffect(() => {
-        const handleKeyDown = (e) => {
-            const key = e.key.toLowerCase();
-            if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) e.preventDefault();
-            activeKeys.current.add(key);
-            if (key === 'k' && socket) {
-                socket.emit('user-message', { commands: ["arm"] });
-                console.log("Sending Commands : ", ["arm"]);
-            }
-            if (key === 'l' && socket) {
-                socket.emit('user-message', { commands: ["land"] });
-                console.log("Sending Commands : ", ["land"]);
-            }
-        };
-        const handleKeyUp = (e) => activeKeys.current.delete(e.key.toLowerCase());
+        let interval = setInterval(() => {
+            const handleKeyDown = (e) => {
+                const key = e.key.toLowerCase();
+                if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) e.preventDefault();
+                activeKeys.current.add(key);
+                if (key === 'k' && socket) {
+                    socket.emit('user-message', { commands: ["arm"] });
+                    console.log("Sending Commands : ", ["arm"]);
+                }
+                if (key === 'l' && socket) {
+                    socket.emit('user-message', { commands: ["land"] });
+                    console.log("Sending Commands : ", ["land"]);
+                }
+            };
+            const handleKeyUp = (e) => activeKeys.current.delete(e.key.toLowerCase());
 
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("keyup", handleKeyUp);
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("keyup", handleKeyUp);
-        };
+            window.addEventListener("keydown", handleKeyDown);
+            window.addEventListener("keyup", handleKeyUp);
+            return () => {
+                window.removeEventListener("keydown", handleKeyDown);
+                window.removeEventListener("keyup", handleKeyUp);
+            };
+        }, 100)
+        return () => clearInterval(interval);
+
     }, [socket]);
 
     // --- JOYSTICK LOGIC HANDLERS ---
