@@ -198,6 +198,13 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
         return () => cancelAnimationFrame(animationId);
     }, [socket]);
 
+    const handleForceKill = () => {
+        if (!socket) return;
+        // This matches the "force_disarm" check in your Python script
+        socket.emit("user-message", { commands: ["force_disarm"] });
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Triple vibrate for warning
+    };
+
     // --- SLIDER LOGIC ---
     const handleSliderMove = (e) => {
         if (!isDraggingSlider || !sliderRef.current) return;
@@ -267,7 +274,29 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                 <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow">Panda Console</h1>
             </header>
 
+            {/* EMERGENCY SECTION */}
+            <div className="w-full flex flex-col items-center justify-center pt-2 z-50 -mb-10 lg:-mb-16 mt-15">
+                <button
+                    onPointerDown={handleForceKill}
+                    className="group relative flex items-center justify-center active:scale-90 transition-transform"
+                >
+                    {/* Outer Glow Area */}
+                    <div className="absolute inset-0 bg-red-600/20 blur-xl group-active:bg-red-600/40 rounded-full transition-all"></div>
+
+                    {/* Circular Button */}
+                    <div className="relative w-20 h-20 lg:w-28 lg:h-28 rounded-full border-[3px] border-red-500 bg-black flex flex-col items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                        <span className="text-red-500 font-black text-[8px] lg:text-[10px] tracking-[0.2em] uppercase mb-1">Emergency</span>
+                        <span className="text-white font-black text-[16px] lg:text-[24px] leading-none uppercase">KILL</span>
+
+                        {/* Warning Icon Overlay (Mini) */}
+                        <div className="mt-1 w-4 h-0.5 bg-red-500/50"></div>
+                    </div>
+                </button>
+                <p className="text-red-500/40 text-[7px] lg:text-[9px] font-bold uppercase tracking-widest mt-1">Instant Motor Stop</p>
+            </div>
+
             <main className="flex-1 w-full flex flex-row items-end justify-between px-4 pb-4 lg:px-12 lg:pb-12">
+
                 <div className="flex-1 flex justify-start">
                     <div className="flex flex-col items-center mb-2 lg:mb-10 w-fit">
                         <p className="text-[8px] lg:text-[10px] text-emerald-500/40 font-bold mb-4 uppercase tracking-widest italic">Movement</p>
@@ -284,6 +313,7 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                                 ) : ">> SYSTEM_READY"}
                             </p>
                         </div>
+
                         <div className='bg-black/60 border border-emerald-500/10 p-2 rounded-xl shadow-lg grid grid-cols-3 text-center text-emerald-400 font-mono text-[8px] lg:text-[12px]'>
                             <div><p className="text-gray-600 text-[6px]">X</p>0.00</div>
                             <div><p className="text-gray-600 text-[7px]">Y</p>0.00</div>
