@@ -83,6 +83,7 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
     const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isMobile] = useState(/Mobi|Android|iPhone/i.test(navigator.userAgent));
+    const [altitude, setAltitude] = useState(null);
 
     const activeKeys = useRef(new Set());
     const leftJoyDirs = useRef(new Set());
@@ -184,6 +185,8 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                 // adding joystick commands from mobile 
                 leftJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
                 rightJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
+                finalCommands.add(altitude);
+
 
                 console.log("Sending Commands : ", Array.from(finalCommands));
 
@@ -350,6 +353,22 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
 
                 <div className="flex-1 flex justify-end">
                     <div className="flex flex-col items-center mb-2 lg:mb-10 w-fit">
+                        <div className="flex flex-col items-center mb-15">
+                            <span className="text-[10px] text-blue-400 font-black font-mono leading-none mb-1">{altitude}m</span>
+                            <div className="relative w-8 h-50 bg-black/60 border border-blue-500/30 rounded-full flex flex-col-reverse p-0.5 overflow-hidden">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="50"
+                                    step="1"
+                                    value={altitude}
+                                    onChange={(e) => setAltitude(parseInt(e.target.value))}
+                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full appearance-none"
+                                    style={{ WebkitAppearance: 'slider-vertical' }} />
+                                <div className="w-full bg-gradient-to-t from-blue-700 to-blue-400 rounded-full" style={{ height: `${(altitude / 50) * 100}%` }} />
+                            </div>
+                            <p className="text-[8px] text-blue-500 uppercase font-black mt-1">Alt</p>
+                        </div>
                         <p className="text-[8px] lg:text-[10px] text-emerald-500/40 font-bold mb-4 uppercase tracking-widest italic">Alt & Yaw</p>
                         <Joystick leftSide={false} onMove={updateRightJoystick} />
                     </div>
