@@ -83,7 +83,8 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
     const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isMobile] = useState(/Mobi|Android|iPhone/i.test(navigator.userAgent));
-    const [altitude, setAltitude] = useState(null);
+    const [altitude, setAltitude] = useState(0);
+    const altRef = useRef(0);
 
     const activeKeys = useRef(new Set());
     const leftJoyDirs = useRef(new Set());
@@ -188,7 +189,7 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
 
 
                 const commandArray = Array.from(finalCommands);
-                console.log(`🚀 Sending -> Commands: ${commandArray} | Altitude: ${altitude}m`);
+                console.log(`🚀 Sending -> Commands: ${commandArray} | Altitude: ${altRef.current}m`);
 
                 if (finalCommands.size >= 0) {
                     socket.emit("user-message", { commands: Array.from(finalCommands) });
@@ -362,7 +363,13 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                                     max="50"
                                     step="1"
                                     value={altitude}
-                                    onChange={(e) => setAltitude(parseInt(e.target.value))}
+                                    onChange={
+                                        (e) => {
+                                            const val = parseInt(e.target.value);
+                                            setAltitude(val);   // Updates the visual UI
+                                            altRef.current = val; // Updates the value for the socket loop
+                                        }
+                                    }
                                     className="absolute inset-0 opacity-0 cursor-pointer h-full w-full appearance-none"
                                     style={{ WebkitAppearance: 'slider-vertical' }} />
                                 <div className="w-full bg-gradient-to-t from-blue-700 to-blue-400 rounded-full" style={{ height: `${(altitude / 50) * 100}%` }} />
