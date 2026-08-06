@@ -317,7 +317,7 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                     {/* Altitude Vertical Slider */}
                     <div className="flex flex-col items-center mb-2">
                         <span className="text-[10px] text-blue-400 font-black font-mono mb-1">{altitude}m</span>
-                        <div className="relative w-8 h-[25vh] max-h-[180px] bg-black/60 border border-blue-500/30 rounded-full p-1 flex flex-col-reverse overflow-hidden">
+                        <div className="relative w-8 h-50 max-h-[180px] bg-black/60 border border-blue-500/30 rounded-full p-1 flex flex-col-reverse overflow-hidden">
                             <input
                                 type="range" min="0" max="50" step="1" value={altitude}
                                 onChange={(e) => { const v = parseInt(e.target.value); setAltitude(v); altRef.current = v; }}
