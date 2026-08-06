@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useAuthState } from '../Store/useAuthStore';
 import {
     ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
-    RotateCcw, RotateCw, ArrowUp, ArrowDown, Power, ArrowDownToLine, Circle
+    RotateCcw, RotateCw, ArrowUp, ArrowDown, Power, ArrowDownToLine, Circle, AlertOctagon
 } from "lucide-react";
 
 // --- OPTIMIZED JOYSTICK COMPONENT ---
-// Memoized to prevent re-renders when the parent receives socket data
 const Joystick = memo(({ leftSide = true, onMove }) => {
     const baseRef = useRef(null);
     const stickRef = useRef(null);
@@ -30,11 +29,7 @@ const Joystick = memo(({ leftSide = true, onMove }) => {
             dy *= maxRadius / dist;
         }
 
-        // DIRECT DOM UPDATE: Bypass React state for the visual movement
-        // This ensures 60FPS movement even if the rest of the app is busy
         stickRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
-
-        // Pass coordinates back to parent logic
         onMove(dx, dy, maxRadius);
     };
 
@@ -43,14 +38,15 @@ const Joystick = memo(({ leftSide = true, onMove }) => {
         if (stickRef.current) {
             stickRef.current.style.transform = `translate(0px, 0px)`;
         }
-        onMove(0, 0, 1); // Reset logic to neutral
+        onMove(0, 0, 1);
     };
 
     return (
-        <div className="relative flex flex-col items-center">
+        <div className="relative flex flex-col items-center select-none touch-none">
+            {/* Responsive Size: w-28 on mobile, up to w-48 on large monitors */}
             <div
                 ref={baseRef}
-                className="w-28 h-28 lg:w-40 lg:h-40 rounded-full bg-emerald-500/5 border-2 border-emerald-500/10 relative flex items-center justify-center shadow-inner touch-none"
+                className="w-[25vh] h-[25vh] min-w-[110px] min-h-[110px] max-w-[220px] max-h-[220px] rounded-full bg-emerald-500/5 border-2 border-emerald-500/10 relative flex items-center justify-center shadow-inner"
                 onPointerDown={(e) => {
                     e.currentTarget.setPointerCapture(e.pointerId);
                     setIsInteracting(true);
@@ -66,8 +62,7 @@ const Joystick = memo(({ leftSide = true, onMove }) => {
 
                 <div
                     ref={stickRef}
-                    className="w-10 h-10 lg:w-14 lg:h-14 rounded-full shadow-2xl flex items-center justify-center bg-[#2dd4bf] pointer-events-none will-change-transform"
-                    style={{ transform: 'translate(0px, 0px)' }}
+                    className="w-[35%] h-[35%] rounded-full shadow-2xl flex items-center justify-center bg-[#2dd4bf] pointer-events-none will-change-transform"
                 >
                     <div className="w-3 h-3 rounded-full border border-black/10" />
                 </div>
@@ -97,51 +92,38 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
 
     const isArmedFromTel = gotTheTelMessage?.theTelMessage?.is_armed || false;
 
-    // --- SOCKETS ---
+    // --- SOCKET LOGIC ---
     useEffect(() => {
         if (!socket) return;
         const handleMessage = (msg) => setGotTheMessage(msg);
         const handleTelemetry = (tel) => setGotTheTelMessage(tel);
-
         socket.on("message", handleMessage);
         socket.on("telemetryMessage", handleTelemetry);
-
         return () => {
             socket.off("message", handleMessage);
             socket.off("telemetryMessage", handleTelemetry);
         };
     }, [socket]);
 
-    // --- KEYBOARD ---
+    // --- KEYBOARD CONTROLS ---
     useEffect(() => {
-        let interval = setInterval(() => {
-            const handleKeyDown = (e) => {
-                const key = e.key.toLowerCase();
-                if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) e.preventDefault();
-                activeKeys.current.add(key);
-                if (key === 'k' && socket) {
-                    socket.emit('user-message', { commands: ["arm"] });
-                    console.log("Sending Commands : ", ["arm"]);
-                }
-                if (key === 'l' && socket) {
-                    socket.emit('user-message', { commands: ["land"] });
-                    console.log("Sending Commands : ", ["land"]);
-                }
-            };
-            const handleKeyUp = (e) => activeKeys.current.delete(e.key.toLowerCase());
-
-            window.addEventListener("keydown", handleKeyDown);
-            window.addEventListener("keyup", handleKeyUp);
-            return () => {
-                window.removeEventListener("keydown", handleKeyDown);
-                window.removeEventListener("keyup", handleKeyUp);
-            };
-        }, 100)
-        return () => clearInterval(interval);
-
+        const handleKeyDown = (e) => {
+            const key = e.key.toLowerCase();
+            if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) e.preventDefault();
+            activeKeys.current.add(key);
+            if (key === 'k' && socket) socket.emit('user-message', { commands: ["arm"] });
+            if (key === 'l' && socket) socket.emit('user-message', { commands: ["land"] });
+        };
+        const handleKeyUp = (e) => activeKeys.current.delete(e.key.toLowerCase());
+        window.addEventListener("keydown", handleKeyDown);
+        window.addEventListener("keyup", handleKeyUp);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+            window.removeEventListener("keyup", handleKeyUp);
+        };
     }, [socket]);
 
-    // --- JOYSTICK LOGIC HANDLERS ---
+    // --- JOYSTICK HANDLERS ---
     const updateLeftJoystick = useCallback((dx, dy, maxRadius) => {
         const threshold = maxRadius * 0.3;
         const newDirs = new Set();
@@ -162,18 +144,16 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
         rightJoyDirs.current = newDirs;
     }, []);
 
-    // --- GAME LOOP ---
+    // --- LOOP ---
     useEffect(() => {
         if (!socket) return;
         let animationId;
         let lastTime = 0;
-
         const loop = (time) => {
-            if (time - lastTime > 100) { // Send at 10Hz to prevent socket flooding
+            if (time - lastTime > 100) {
                 lastTime = time;
                 const finalCommands = new Set();
                 const keys = activeKeys.current;
-
                 if (keys.has("w")) finalCommands.add("forward");
                 if (keys.has("s")) finalCommands.add("backward");
                 if (keys.has("a")) finalCommands.add("left");
@@ -182,65 +162,52 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                 if (keys.has("arrowdown")) finalCommands.add("down");
                 if (keys.has("arrowleft")) finalCommands.add("rotate_left");
                 if (keys.has("arrowright")) finalCommands.add("rotate_right");
-
-                // adding joystick commands from mobile 
                 leftJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
                 rightJoyDirs.current.forEach(cmd => finalCommands.add(cmd));
 
-
                 const commandArray = Array.from(finalCommands);
-                console.log(`🚀 Sending -> Commands: ${commandArray} | Altitude: ${altRef.current}m`);
-
                 if (finalCommands.size >= 0) {
                     socket.emit("user-message", {
                         commands: commandArray,
-                        altitude: altRef.current // <--- MUST ADD THIS LINE TO SEND IT
+                        altitude: altRef.current
                     });
                 }
             }
             animationId = requestAnimationFrame(loop);
         };
-
         animationId = requestAnimationFrame(loop);
         return () => cancelAnimationFrame(animationId);
     }, [socket]);
 
     const handleForceKill = () => {
         if (!socket) return;
-        // This matches the "force_disarm" check in your Python script
         socket.emit("user-message", { commands: ["force_disarm"] });
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Triple vibrate for warning
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     };
 
-    // --- SLIDER LOGIC ---
     const handleSliderMove = (e) => {
         if (!isDraggingSlider || !sliderRef.current) return;
         const rect = sliderRef.current.getBoundingClientRect();
         const centerY = rect.top + rect.height / 2;
         let dy = e.clientY - centerY;
         const maxRange = rect.height / 2 - 10;
-
         if (dy < -maxRange) dy = -maxRange;
         if (dy > maxRange) dy = maxRange;
         setYPos(dy);
-
         const threshold = maxRange * 0.8;
         if (!hasTriggeredAction.current) {
             if (dy < -threshold) {
                 socket?.emit('user-message', { commands: ["arm"] });
-                console.log("Sending Commands : ", ["arm"]);
                 if (navigator.vibrate) navigator.vibrate(50);
                 hasTriggeredAction.current = true;
             } else if (dy > threshold) {
                 socket?.emit('user-message', { commands: ["land"] });
-                console.log("Sending Commands : ", ["land"]);
                 if (navigator.vibrate) navigator.vibrate(50);
                 hasTriggeredAction.current = true;
             }
         }
     };
 
-    // --- FULLSCREEN & ORIENTATION ---
     const enterLandscapeConsole = async () => {
         try {
             const element = document.documentElement;
@@ -269,123 +236,115 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
             {/* ROTATE OVERLAY */}
             {isMobile && (!isLandscape || !isFullScreen) && (
                 <div className="fixed inset-0 z-[100] bg-[#050a05] flex flex-col items-center justify-center text-center p-6 text-white font-bold">
-                    <div className="w-16 h-16 border-4 border-emerald-500 rounded-xl animate-bounce flex items-center justify-center mb-4 text-emerald-500 text-3xl">🔄</div>
-                    <p className="mb-4 uppercase tracking-widest">{!isLandscape ? "Rotate Device to Fly" : "Go Fullscreen to Fly"}</p>
-                    <button onClick={enterLandscapeConsole} className="bg-[#2dd4bf] text-black font-bold py-2 px-6 rounded-full text-sm shadow-[0_0_15px_rgba(45,212,191,0.5)]">
-                        TAP TO START
+                    <AlertOctagon size={48} className="text-emerald-500 mb-4 animate-pulse" />
+                    <p className="mb-4 uppercase tracking-[0.3em] text-xs">Landscape Mode Required</p>
+                    <button onClick={enterLandscapeConsole} className="bg-[#2dd4bf] text-black font-bold py-3 px-8 rounded-full text-xs shadow-lg">
+                        START CONSOLE
                     </button>
                 </div>
             )}
 
-            <header className="w-full py-2 flex justify-center items-center bg-[#2dd4bf]/5 border-b border-emerald-500/10">
-                <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm green-glow">Panda Console</h1>
+            {/* HEADER */}
+            <header className="w-full py-[1.5vh] flex justify-center items-center bg-emerald-500/5 border-b border-emerald-500/10 shrink-0">
+                <h1 className="text-emerald-400 font-black tracking-[0.5em] uppercase text-[min(2.5vw,14px)] green-glow">Panda Console</h1>
             </header>
 
-            {/* EMERGENCY SECTION */}
-            <div className="w-full flex flex-col items-center justify-center pt-2 z-50 -mb-10 lg:-mb-16 mt-15">
-                <button
-                    onPointerDown={handleForceKill}
-                    className="group relative flex items-center justify-center active:scale-90 transition-transform"
-                >
-                    {/* Outer Glow Area */}
-                    <div className="absolute inset-0 bg-red-600/20 blur-xl group-active:bg-red-600/40 rounded-full transition-all"></div>
-
-                    {/* Circular Button */}
-                    <div className="relative w-20 h-20 lg:w-28 lg:h-28 rounded-full border-[3px] border-red-500 bg-black flex flex-col items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-                        <span className="text-red-500 font-black text-[8px] lg:text-[10px] tracking-[0.2em] uppercase mb-1">Emergency</span>
-                        <span className="text-white font-black text-[16px] lg:text-[24px] leading-none uppercase">KILL</span>
-
-                        {/* Warning Icon Overlay (Mini) */}
-                        <div className="mt-1 w-4 h-0.5 bg-red-500/50"></div>
+            {/* EMERGENCY KILL - Centered vertically between Header and Main */}
+            <div className="flex-1 flex flex-col items-center justify-center w-full min-h-0">
+                <div className="flex flex-col items-center group cursor-pointer" onPointerDown={handleForceKill}>
+                    <div className="relative w-[15vh] h-[15vh] max-w-[120px] max-h-[120px] rounded-full border-4 border-red-500/50 bg-black flex flex-col items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.2)] active:scale-95 transition-transform overflow-hidden">
+                        <div className="absolute inset-0 bg-red-600/10 group-active:bg-red-600/30 transition-colors" />
+                        <span className="relative text-red-500 font-black text-[10px] tracking-widest uppercase">Emergency</span>
+                        <span className="relative text-white font-black text-xl leading-none">KILL</span>
                     </div>
-                </button>
-                <p className="text-red-500/40 text-[7px] lg:text-[9px] font-bold uppercase tracking-widest mt-1">Instant Motor Stop</p>
+                    <p className="text-red-500/40 text-[8px] font-bold uppercase tracking-widest mt-2">Instant Disarm</p>
+                </div>
             </div>
 
-            <main className="flex-1 w-full flex flex-row items-end justify-between px-4 pb-4 lg:px-12 lg:pb-12">
-
-                <div className="flex-1 flex justify-start">
-                    <div className="flex flex-col items-center mb-2 lg:mb-10 w-fit">
-                        <p className="text-[8px] lg:text-[10px] text-emerald-500/40 font-bold mb-4 uppercase tracking-widest italic">Movement</p>
-                        <Joystick leftSide={true} onMove={updateLeftJoystick} />
-                    </div>
+            {/* MAIN INTERFACE - Spread across width */}
+            <main className="w-full flex flex-row items-end justify-between px-[4vw] pb-[4vh] gap-[2vw]">
+                
+                {/* Left Column: Movement */}
+                <div className="flex flex-col items-center gap-2">
+                    <p className="text-[9px] text-emerald-500/30 font-bold uppercase tracking-widest italic">Movement</p>
+                    <Joystick leftSide={true} onMove={updateLeftJoystick} />
                 </div>
 
-                <div className="flex flex-row items-center gap-4 lg:gap-10 mb-4 shrink-0 z-10 w-fit">
-                    <div className="flex flex-col gap-3 w-32 lg:w-80">
-                        <div className='bg-emerald-500/5 border border-emerald-500/20 p-2 rounded-xl min-h-[45px] lg:min-h-[60px] flex items-center justify-center text-center overflow-hidden'>
-                            <p className="text-[9px] lg:text-[14px] leading-tight text-white font-mono tracking-tighter">
+                {/* Center Column: Telemetry & Arming */}
+                <div className="flex-1 max-w-[400px] flex flex-row items-center justify-center gap-[3vw] mb-[2vh]">
+                    <div className="flex flex-col gap-3 w-full">
+                        <div className='bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-xl min-h-[50px] flex items-center justify-center text-center backdrop-blur-sm'>
+                            <p className="text-[min(2vw,12px)] leading-tight text-white font-mono">
                                 {gotTheMessage ? (
-                                    <><span className="text-[#2dd4bf] font-bold">{gotTheMessage.name}</span>: {JSON.stringify(gotTheMessage.theMessage)}</>
-                                ) : ">> SYSTEM_READY"}
+                                    <><span className="text-emerald-400 font-bold">DRONE:</span> {JSON.stringify(gotTheMessage.theMessage)}</>
+                                ) : ">> LINK_ESTABLISHED"}
                             </p>
                         </div>
-
-                        <div className='bg-black/60 border border-emerald-500/10 p-2 rounded-xl shadow-lg grid grid-cols-3 text-center text-emerald-400 font-mono text-[8px] lg:text-[12px]'>
-                            <div><p className="text-gray-600 text-[6px]">X</p>0.00</div>
-                            <div><p className="text-gray-600 text-[7px]">Y</p>0.00</div>
-                            <div><p className="text-gray-600 text-[6px]">θ</p>0.00</div>
+                        <div className='bg-black/40 border border-emerald-500/10 p-2 rounded-xl grid grid-cols-3 gap-1 text-center text-emerald-400 font-mono text-[min(1.8vw,10px)]'>
+                            <div className="border-r border-emerald-500/10"><p className="text-[8px] text-emerald-500/40">LAT</p>{gotTheTelMessage?.theTelMessage?.gps_raw?.lat?.toFixed(4) || "0.000"}</div>
+                            <div className="border-r border-emerald-500/10"><p className="text-[8px] text-emerald-500/40">LON</p>{gotTheTelMessage?.theTelMessage?.gps_raw?.lon?.toFixed(4) || "0.000"}</div>
+                            <div><p className="text-[8px] text-emerald-500/40">BATT</p>{gotTheTelMessage?.theTelMessage?.battery?.p || 0}%</div>
                         </div>
                     </div>
 
-                    {/* ACTION SLIDER */}
-                    <div className="flex flex-col items-center gap-1">
+                    {/* Action Slider */}
+                    <div
+                        ref={sliderRef}
+                        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setIsDraggingSlider(true); hasTriggeredAction.current = false; }}
+                        onPointerMove={handleSliderMove}
+                        onPointerUp={() => { setIsDraggingSlider(false); setYPos(0); }}
+                        onPointerCancel={() => { setIsDraggingSlider(false); setYPos(0); }}
+                        className="relative w-12 h-32 lg:w-16 lg:h-48 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center shrink-0"
+                    >
+                        <div className="absolute top-2 text-[7px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
+                        <div className="absolute bottom-2 text-[7px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
+                        <div className="w-full h-0.5 bg-white/10 absolute" />
                         <div
-                            ref={sliderRef}
-                            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setIsDraggingSlider(true); hasTriggeredAction.current = false; }}
-                            onPointerMove={handleSliderMove}
-                            onPointerUp={() => { setIsDraggingSlider(false); setYPos(0); }}
-                            onPointerCancel={() => { setIsDraggingSlider(false); setYPos(0); }}
-                            className="relative w-12 h-36 lg:w-16 lg:h-56 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center touch-none"
+                            className="absolute w-10 h-10 lg:w-14 lg:h-14 flex items-center justify-center shadow-2xl transition-all duration-150"
+                            style={{
+                                transform: `translateY(${yPos}px)`,
+                                borderRadius: (isArmedFromTel || yPos < -15) ? "8px" : "50%",
+                                background: (isArmedFromTel || yPos < -15) ? "#10b981" : (yPos > 15 ? "#f97316" : "#06b6d4")
+                            }}
                         >
-                            <div className="absolute top-2 text-[6px] font-bold text-emerald-500 opacity-40 uppercase">Arm</div>
-                            <div className="absolute bottom-2 text-[6px] font-bold text-orange-500 opacity-40 uppercase">Land</div>
-                            <div className="w-full h-0.5 bg-white/10 absolute" />
-                            <div
-                                className="absolute w-10 h-10 lg:w-14 lg:h-14 flex items-center justify-center shadow-2xl transition-all duration-150"
-                                style={{
-                                    transform: `translateY(${yPos}px)`,
-                                    borderRadius: (isArmedFromTel || yPos < -15) ? "8px" : "50%",
-                                    background: (isArmedFromTel || yPos < -15) ? "#10b981" : (yPos > 15 ? "#f97316" : "#06b6d4")
-                                }}
-                            >
-                                {isArmedFromTel ? <Power size={18} /> : <ArrowDownToLine size={18} />}
-                            </div>
+                            {isArmedFromTel ? <Power size={18} /> : <ArrowDownToLine size={18} />}
                         </div>
                     </div>
                 </div>
 
-                <div className="flex-1 flex justify-end">
-                    <div className="flex flex-col items-center mb-2 lg:mb-10 w-fit">
-                        <div className="flex flex-col items-center mb-15">
-                            <span className="text-[10px] text-blue-400 font-black font-mono leading-none mb-1">{altitude}m</span>
-                            <div className="relative w-8 h-50 bg-black/60 border border-blue-500/30 rounded-full flex flex-col-reverse p-0.5 overflow-hidden">
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="50"
-                                    step="1"
-                                    value={altitude}
-                                    onChange={
-                                        (e) => {
-                                            const val = parseInt(e.target.value);
-                                            setAltitude(val);   // Updates the visual UI
-                                            altRef.current = val; // Updates the value for the socket loop
-                                        }
-                                    }
-                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full appearance-none"
-                                    style={{ WebkitAppearance: 'slider-vertical' }} />
-                                <div className="w-full bg-gradient-to-t from-blue-700 to-blue-400 rounded-full" style={{ height: `${(altitude / 50) * 100}%` }} />
-                            </div>
-                            <p className="text-[8px] text-blue-500 uppercase font-black mt-1">Alt</p>
+                {/* Right Column: Alt & Yaw */}
+                <div className="flex flex-row items-end gap-[2vw]">
+                    {/* Altitude Vertical Slider */}
+                    <div className="flex flex-col items-center mb-2">
+                        <span className="text-[10px] text-blue-400 font-black font-mono mb-1">{altitude}m</span>
+                        <div className="relative w-8 h-[25vh] max-h-[180px] bg-black/60 border border-blue-500/30 rounded-full p-1 flex flex-col-reverse overflow-hidden">
+                            <input
+                                type="range" min="0" max="50" step="1" value={altitude}
+                                onChange={(e) => { const v = parseInt(e.target.value); setAltitude(v); altRef.current = v; }}
+                                className="absolute inset-0 opacity-0 cursor-pointer h-full w-full appearance-none z-10"
+                            />
+                            <div className="w-full bg-gradient-to-t from-blue-700 to-blue-400 rounded-full transition-all duration-200" style={{ height: `${(altitude / 50) * 100}%` }} />
                         </div>
-                        <p className="text-[8px] lg:text-[10px] text-emerald-500/40 font-bold mb-4 uppercase tracking-widest italic">Alt & Yaw</p>
+                        <p className="text-[8px] text-blue-500 uppercase font-black mt-1">Alt</p>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2">
+                        <p className="text-[9px] text-emerald-500/30 font-bold uppercase tracking-widest italic">Rotation</p>
                         <Joystick leftSide={false} onMove={updateRightJoystick} />
                     </div>
                 </div>
             </main>
 
-            <style dangerouslySetInnerHTML={{ __html: `.green-glow { text-shadow: 0 0 10px rgba(45, 212, 191, 0.6); } * { -webkit-tap-highlight-color: transparent !important; touch-action: none !important; }` }} />
+            <style dangerouslySetInnerHTML={{ __html: `
+                .green-glow { text-shadow: 0 0 10px rgba(45, 212, 191, 0.6); }
+                * { 
+                    touch-action: none !important; 
+                    -webkit-user-select: none !important;
+                    user-select: none !important; 
+                    -webkit-tap-highlight-color: transparent !important;
+                }
+                input[type=range] { -webkit-appearance: slider-vertical; }
+            ` }} />
         </div>
     );
 };
