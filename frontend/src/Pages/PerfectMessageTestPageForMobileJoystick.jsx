@@ -192,7 +192,10 @@ export const PerfectMessageTestPageForMobileJoystick = () => {
                 console.log(`🚀 Sending -> Commands: ${commandArray} | Altitude: ${altRef.current}m`);
 
                 if (finalCommands.size >= 0) {
-                    socket.emit("user-message", { commands: Array.from(finalCommands) });
+                    socket.emit("user-message", {
+                        commands: commandArray,
+                        altitude: altRef.current // <--- MUST ADD THIS LINE TO SEND IT
+                    });
                 }
             }
             animationId = requestAnimationFrame(loop);
