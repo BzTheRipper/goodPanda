@@ -302,7 +302,7 @@ export const MessagetestPage = () => {
                                 </button>
                             </div>
                             <div className="flex gap-3 lg:gap-6">{[{ l: 'R', v: tel?.motors?.[0] }, { l: 'P', v: tel?.motors?.[1] }].map((x, i) => (<div key={i} className="flex flex-col items-center"><span className="text-[7px] text-gray-400 uppercase">{x.l}</span><span className="text-sm lg:text-lg font-black text-pink-500">{x.v || 1500}</span></div>))}</div>
-                            <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm">Panda Console</h1>
+                            <h1 className="text-emerald-400 font-black tracking-[0.4em] uppercase text-[10px] lg:text-sm">Drone Control Dashboard</h1>
                             <div className="flex gap-3 lg:gap-6">{[{ l: 'Y', v: tel?.motors?.[2] }, { l: 'T', v: tel?.motors?.[3] }].map((x, i) => (<div key={i} className="flex flex-col items-center"><span className="text-[7px] text-gray-400 uppercase">{x.l}</span><span className="text-sm lg:text-lg font-black text-pink-500">{x.v || 1500}</span></div>))}</div>
                         </div>
                         <div className="absolute right-4 top-4 size-3 lg:size-4 rounded-full shadow-lg" style={{ backgroundColor: droneOnline ? '#10b981' : '#dc2626' }} />
