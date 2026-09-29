@@ -399,7 +399,7 @@ export const MessagetestPage = () => {
                     {/* Manual Mode UI */}
                     {isMobile && !isStarted && (
                         <div className={`fixed inset-0 z-[200] bg-[#050a05] flex flex-col items-center justify-center p-8 transition-transform duration-1000 ${isStarted ? '-translate-y-full' : 'translate-y-0'}`}>
-                            <Rocket size={48} className="text-emerald-500 mb-4 animate-bounce" /><h2 className="text-emerald-500 font-black text-3xl tracking-[0.2em] uppercase green-glow">Panda Console</h2><button onClick={handleStartConsole} className="px-12 py-4 bg-emerald-600/20 border-2 border-emerald-500 rounded-full text-emerald-400 font-black mt-12">LAUNCH SYSTEM</button>
+                            <Rocket size={48} className="text-emerald-500 mb-4 animate-bounce" /><h2 className="text-emerald-500 font-black text-3xl tracking-[0.2em] uppercase green-glow">Drone Controling Dashboard</h2><button onClick={handleStartConsole} className="px-12 py-4 bg-emerald-600/20 border-2 border-emerald-500 rounded-full text-emerald-400 font-black mt-12">LAUNCH SYSTEM</button>
                         </div>
                     )}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
