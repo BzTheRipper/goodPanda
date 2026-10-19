@@ -188,9 +188,12 @@ export const MessagetestPage = () => {
     const lon = gpsData.lon ? Number(gpsData.lon) : 35.224925554289065;
     const position = useMemo(() => [lat, lon], [lat, lon]);
 
+    const CARTO_KEY = import.meta.env.VITE_CARTO_KEY;
     const mapTiles = isDarkMode
-        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+        ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`
+        : `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`;
+
+    const MAP_ATTRIBUTION = '&copy; OpenStreetMap contributors &copy; CARTO';
 
     useEffect(() => {
         if (!socket) return;
@@ -321,8 +324,8 @@ export const MessagetestPage = () => {
                                     </button>
                                 </div>
                             )}
-                            <MapContainer center={position} zoom={16} style={{ height: '100%', width: '100%' }} zoomControl={false} attributionControl={false}>
-                                <TileLayer url={mapTiles} />
+                            <MapContainer center={position} zoom={16} style={{ height: '100%', width: '100%' }} zoomControl={false}>
+                                <TileLayer url={mapTiles} attribution={MAP_ATTRIBUTION} />
                                 <MapClickHandler onTargetClear={handleClearTarget} />
                                 <Marker position={position} key={`drone-auto-${lat}-${lon}`} />
                                 {targetPos && (<><Marker position={targetPos} icon={createColoredIcon(targetColor)} /><Polyline positions={[position, targetPos]} color={targetColor} weight={2} dashArray="5, 10" opacity={0.8} /></>)}
