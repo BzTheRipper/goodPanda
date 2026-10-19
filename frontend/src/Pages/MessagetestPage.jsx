@@ -192,6 +192,8 @@ export const MessagetestPage = () => {
     const mapTiles = isDarkMode
         ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`
         : `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`;
+    
+    console.log("CARTO KEY:", CARTO_KEY);
 
     const MAP_ATTRIBUTION = '&copy; OpenStreetMap contributors &copy; CARTO';
 
